@@ -1,0 +1,112 @@
+[
+	{
+		"specs": {
+			"name": "USDT",
+			"symbol": "USDT",
+			"decimals": 6
+		},
+		"addrs": {
+			"solana_mainnet_mint_pubkey": "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
+			"solana_devnets_mint_pubkey": "3vxj94fSd3jrhaGAwaEKGDPEwn5Yqs81Ay5j1BcdMqSZ"
+		}
+	},
+	{
+		"specs": {
+			"name": "Dai Stablecoin (Wormhole)",
+			"symbol": "wDAI",
+			"decimals": 9
+		},
+		"addrs": {
+			"solana_mainnet_mint_pubkey": "FYpdBuyAHSbdaAyD1sKkxyLWbAP8uUW9h6uvdhK74ij1",
+			"solana_devnets_mint_pubkey": "8QTYE7jw4oVYLqgNaks2Uu2S6VfboGcfpQ8Nvvta35Nc"
+		}
+	},
+	{
+		"specs": {
+			"name": "USDC",
+			"symbol": "USDC",
+			"decimals": 6
+		},
+		"addrs": {
+			"solana_mainnet_mint_pubkey": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+			"solana_devnets_mint_pubkey": "F4DgNXqiT3zUQA7dhqN5VzEPkRcd8vtqFwpJSwEEvnz5"
+		}
+	},
+	{
+		"specs": {
+			"name": "Wrapped Ethereum (Sollet)",
+			"symbol": "ETH",
+			"decimals": 6
+		},
+		"addrs": {
+			"solana_mainnet_mint_pubkey": "2FPyTwcZLUg1MDrwsyoP4D6s1tM7hAkHYRjkNb5w6Pxk",
+			"solana_devnets_mint_pubkey": "8F4V6tmyCgM4jnabiv8ohAGsLNrNWnwMrrXrY3LQwnwP"
+		}
+	},
+	{
+		"specs": {
+			"name": "Wrapped BTC (Wormhole)",
+			"symbol": "wWBTC",
+			"decimals": 8
+		},
+		"addrs": {
+			"solana_mainnet_mint_pubkey": "qfnqNqs3nCAHjnyCgLRDbBtq4p2MtHZxw8YjSyYhPoL",
+			"solana_devnets_mint_pubkey": "AaymAPLHxVh68UJU4TkmSDZRnmebWPi8yxP5tmXv5xVU"
+		}
+	},
+	{
+		"specs": {
+			"name": "Wrapped Aave",
+			"symbol": "AAVE",
+			"decimals": 6
+		},
+		"addrs": {
+			"solana_mainnet_mint_pubkey": "dK83wTVypEpa1pqiBbHY3MNuUnT3ADUZM4wk9VZXZEc",
+			"solana_devnets_mint_pubkey": "HdvHZXp5F4ZPxb5V7xG4gpBnwmbzMite85NSg3aycmhi"
+		}
+	},
+	{
+		"specs": {
+			"name": "Curve DAO Token (Wormhole)",
+			"symbol": "wCRV",
+			"decimals": 9
+		},
+		"addrs": {
+			"solana_mainnet_mint_pubkey": "ApmXkxXCASdxRf3Ln6Ni7oAZ7E6CX1CcJAD8A5qBdhSm",
+			"solana_devnets_mint_pubkey": "FTC9uerzkKGM2FzysdnxpPQMttkMDmjxsuiyGT5AmBnL"
+		}
+	},
+	{
+		"specs": {
+			"name": "Wrapped SUSHI (Sollet)",
+			"symbol": "SUSHI",
+			"decimals": 6
+		},
+		"addrs": {
+			"solana_mainnet_mint_pubkey": "AR1Mtgh7zAtxuxGd2XPovXPVjcSdY3i4rQYisNadjfKy",
+			"solana_devnets_mint_pubkey": "GhFhboJyEt1iHYu6r563y3PxZQ4j8YserdF7YiCYcJUX"
+		}
+	},
+	{
+		"specs": {
+			"name": "Balancer (Wormhole)",
+			"symbol": "wBAL",
+			"decimals": 9
+		},
+		"addrs": {
+			"solana_mainnet_mint_pubkey": "HPYXGSdAwyK5GwmuivL8gDdUVRChtgXq6SRat44k4Pat",
+			"solana_devnets_mint_pubkey": "HU4jzc8c716ryzkfKYtg8PeJfYhjFmkmd3BGUh84fXqQ"
+		}
+	},
+	{
+		"specs": {
+			"name": "Wrapped SOL",
+			"symbol": "wSOL",
+			"decimals": 9
+		},
+		"addrs": {
+			"solana_mainnet_mint_pubkey": "So11111111111111111111111111111111111111112",
+			"solana_devnets_mint_pubkey": "So11111111111111111111111111111111111111112"
+		}
+	}
+]

@@ -3,7 +3,8 @@ members = [
     'cli',
     'faucet',
     'program',
-    'performance/sender'
+    'performance/sender',
+    'deployments/erc20-tokens'
 ]
 exclude = [
     'rust-evm'

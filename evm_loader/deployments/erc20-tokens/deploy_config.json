@@ -1,0 +1,7 @@
+{
+		"abi_path": "./abi/NeonERC20Wrapper.json",
+		"key_path": "./erc20-deploy-key.txt",
+		"token_list_path": "../artifacts/tokenlist.json",
+		"artifacts_path": "../artifacts",
+		"network": "release"
+}

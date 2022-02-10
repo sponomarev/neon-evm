@@ -1,0 +1,19 @@
+[package]
+name = "erc20-tokens"
+version = "0.3.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+bs58 = "0.4"
+secp256k1 = { version = "0.20", features = ["recovery"] }
+solana-sdk = "1.8"
+web3 = "0.17"
+tokio = { version = "1.13", features = ["rt", "macros"] }
+clap = "3.0"
+eip55 = "0.1"
+ethers-core = { version = "0.6" }
+ethers-signers = { version = "0.6" }
