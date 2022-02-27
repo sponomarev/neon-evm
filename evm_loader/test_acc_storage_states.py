@@ -10,7 +10,7 @@ client = Client(solana_url)
 
 CONTRACTS_DIR = os.environ.get("CONTRACTS_DIR", "evm_loader/")
 evm_loader_id = os.environ.get("EVM_LOADER")
-ETH_TOKEN_MINT_ID: PublicKey = PublicKey(os.environ.get("ETH_TOKEN_MINT"))
+NEON_TOKEN_MINT_ID: PublicKey = PublicKey(os.environ.get("NEON_TOKEN_MINT"))
 
 class storage_states(unittest.TestCase):
     @classmethod
@@ -21,7 +21,7 @@ class storage_states(unittest.TestCase):
 
         cls.loader = EvmLoader(wallet, evm_loader_id)
         cls.acc = wallet.get_acc()
-        cls.acc_token = get_associated_token_address(PublicKey(cls.acc.public_key()), ETH_TOKEN_MINT_ID)
+        cls.acc_token = get_associated_token_address(PublicKey(cls.acc.public_key()), NEON_TOKEN_MINT_ID)
 
         if getBalance(wallet.get_acc().public_key()) == 0:
             tx = client.request_airdrop(wallet.get_acc().public_key(), 1000000 * 10 ** 9, commitment=Confirmed)
@@ -31,14 +31,14 @@ class storage_states(unittest.TestCase):
         # Create ethereum account for user account
         cls.caller_ether = eth_keys.PrivateKey(cls.acc.secret_key()).public_key.to_canonical_address()
         (cls.caller, cls.caller_nonce) = cls.loader.ether2program(cls.caller_ether)
-        cls.caller_token = get_associated_token_address(PublicKey(cls.caller), ETH_TOKEN_MINT_ID)
+        cls.caller_token = get_associated_token_address(PublicKey(cls.caller), NEON_TOKEN_MINT_ID)
 
         if getBalance(cls.caller) == 0:
             print("Create.caller account...")
             _ = cls.loader.createEtherAccount(cls.caller_ether)
             print("Done\n")
 
-        SplToken(solana_url).transfer(ETH_TOKEN_MINT_ID, 201, get_associated_token_address(PublicKey(cls.caller), ETH_TOKEN_MINT_ID))
+        SplToken(solana_url).transfer(NEON_TOKEN_MINT_ID, 201, get_associated_token_address(PublicKey(cls.caller), NEON_TOKEN_MINT_ID))
 
         print('Account:', cls.acc.public_key(), bytes(cls.acc.public_key()).hex())
         print("Caller:", cls.caller_ether.hex(), cls.caller_nonce, "->", cls.caller,

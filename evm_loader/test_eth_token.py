@@ -17,7 +17,7 @@ sysinstruct = "Sysvar1nstructions1111111111111111111111111"
 keccakprog = "KeccakSecp256k11111111111111111111111111111"
 sysvarclock = "SysvarC1ock11111111111111111111111111111111"
 
-ETH_TOKEN_MINT_ID: PublicKey = PublicKey(os.environ.get("ETH_TOKEN_MINT"))
+NEON_TOKEN_MINT_ID: PublicKey = PublicKey(os.environ.get("NEON_TOKEN_MINT"))
 
 
 class EthTokenTest(unittest.TestCase):
@@ -33,12 +33,12 @@ class EthTokenTest(unittest.TestCase):
         # Create ethereum account for user account
         cls.caller_ether = eth_keys.PrivateKey(cls.acc.secret_key()).public_key.to_canonical_address()
         (cls.caller, cls.caller_nonce) = cls.loader.ether2program(cls.caller_ether)
-        cls.caller_token = get_associated_token_address(PublicKey(cls.caller), ETH_TOKEN_MINT_ID)
+        cls.caller_token = get_associated_token_address(PublicKey(cls.caller), NEON_TOKEN_MINT_ID)
 
         if getBalance(cls.caller) == 0:
             print("Create caller account...")
             _ = cls.loader.createEtherAccount(cls.caller_ether)
-            cls.token.transfer(ETH_TOKEN_MINT_ID, 201, get_associated_token_address(PublicKey(cls.caller), ETH_TOKEN_MINT_ID))
+            cls.token.transfer(NEON_TOKEN_MINT_ID, 201, get_associated_token_address(PublicKey(cls.caller), NEON_TOKEN_MINT_ID))
             print("Done\n")
 
         print('Account:', cls.acc.public_key(), bytes(cls.acc.public_key()).hex())
@@ -70,8 +70,8 @@ class EthTokenTest(unittest.TestCase):
             step_count,
             evm_instruction,
             add_meta=[
-                AccountMeta(pubkey=get_associated_token_address(PublicKey(self.reId), ETH_TOKEN_MINT_ID), is_signer=False, is_writable=True),
-                AccountMeta(pubkey=get_associated_token_address(PublicKey(self.caller), ETH_TOKEN_MINT_ID), is_signer=False, is_writable=True),
+                AccountMeta(pubkey=get_associated_token_address(PublicKey(self.reId), NEON_TOKEN_MINT_ID), is_signer=False, is_writable=True),
+                AccountMeta(pubkey=get_associated_token_address(PublicKey(self.caller), NEON_TOKEN_MINT_ID), is_signer=False, is_writable=True),
             ] + additional_accounts
         )
         print('neon_evm_instr_19_partial_call:', neon_evm_instr_19_partial_call)
@@ -89,8 +89,8 @@ class EthTokenTest(unittest.TestCase):
             self.collateral_pool_address,
             step_count,
             add_meta=[
-                AccountMeta(pubkey=get_associated_token_address(PublicKey(self.reId), ETH_TOKEN_MINT_ID), is_signer=False, is_writable=True),
-                AccountMeta(pubkey=get_associated_token_address(PublicKey(self.caller), ETH_TOKEN_MINT_ID), is_signer=False, is_writable=True),
+                AccountMeta(pubkey=get_associated_token_address(PublicKey(self.reId), NEON_TOKEN_MINT_ID), is_signer=False, is_writable=True),
+                AccountMeta(pubkey=get_associated_token_address(PublicKey(self.caller), NEON_TOKEN_MINT_ID), is_signer=False, is_writable=True),
             ] + additional_accounts
         )
         print('neon_evm_instr_20_continue:', neon_evm_instr_20_continue)
@@ -171,7 +171,7 @@ class EthTokenTest(unittest.TestCase):
 
     def test_contract_balance(self):
         print("\ntest_contract_balance")
-        contract_token = get_associated_token_address(PublicKey(self.reId), ETH_TOKEN_MINT_ID)
+        contract_token = get_associated_token_address(PublicKey(self.reId), NEON_TOKEN_MINT_ID)
         expected_balance = self.token.balance(contract_token)
 
         func_name = abi.function_signature_to_4byte_selector('checkContractBalance(uint256)')
@@ -188,7 +188,7 @@ class EthTokenTest(unittest.TestCase):
 
     def test_transfer_and_call(self):
         print("\ntest_transfer_and_call")
-        contract_token = get_associated_token_address(PublicKey(self.reId), ETH_TOKEN_MINT_ID)
+        contract_token = get_associated_token_address(PublicKey(self.reId), NEON_TOKEN_MINT_ID)
 
         contract_balance_before = int(self.token.balance(contract_token)* 10**9)
         caller_balance_before = int(self.token.balance(self.caller_token)* 10**9)
@@ -215,8 +215,8 @@ class EthTokenTest(unittest.TestCase):
 
     def test_transfer_internal(self):
         print("test_transfer_internal")
-        contract_token = get_associated_token_address(PublicKey(self.reId), ETH_TOKEN_MINT_ID)
-        self.token.transfer(ETH_TOKEN_MINT_ID, 500, contract_token)
+        contract_token = get_associated_token_address(PublicKey(self.reId), NEON_TOKEN_MINT_ID)
+        self.token.transfer(NEON_TOKEN_MINT_ID, 500, contract_token)
 
         contract_balance_before = self.token.balance(contract_token)
         caller_balance_before = self.token.balance(self.caller_token)

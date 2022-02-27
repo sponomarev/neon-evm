@@ -8,7 +8,7 @@ from eth_tx_utils import make_keccak_instruction_data, make_instruction_data_fro
 from solana_utils import *
 
 CONTRACTS_DIR = os.environ.get("CONTRACTS_DIR", "evm_loader/")
-ETH_TOKEN_MINT_ID: PublicKey = PublicKey(os.environ.get("ETH_TOKEN_MINT"))
+NEON_TOKEN_MINT_ID: PublicKey = PublicKey(os.environ.get("NEON_TOKEN_MINT"))
 evm_loader_id = os.environ.get("EVM_LOADER")
 
 class EvmLoaderTestsNewAccount(unittest.TestCase):
@@ -24,12 +24,12 @@ class EvmLoaderTestsNewAccount(unittest.TestCase):
         # Create ethereum account for user account
         cls.caller_ether = eth_keys.PrivateKey(cls.acc.secret_key()).public_key.to_canonical_address()
         (cls.caller, cls.caller_nonce) = cls.loader.ether2program(cls.caller_ether)
-        cls.caller_token = get_associated_token_address(PublicKey(cls.caller), ETH_TOKEN_MINT_ID)
+        cls.caller_token = get_associated_token_address(PublicKey(cls.caller), NEON_TOKEN_MINT_ID)
 
         if getBalance(cls.caller) == 0:
             print("Create caller account...")
             _ = cls.loader.createEtherAccount(cls.caller_ether)
-            cls.token.transfer(ETH_TOKEN_MINT_ID, 201, get_associated_token_address(PublicKey(cls.caller), ETH_TOKEN_MINT_ID))
+            cls.token.transfer(NEON_TOKEN_MINT_ID, 201, get_associated_token_address(PublicKey(cls.caller), NEON_TOKEN_MINT_ID))
             print("Done\n")
 
         print('Account:', cls.acc.public_key(), bytes(cls.acc.public_key()).hex())
@@ -92,20 +92,20 @@ class EvmLoaderTestsNewAccount(unittest.TestCase):
             # Collateral pool address:
             AccountMeta(pubkey=self.collateral_pool_address, is_signer=False, is_writable=True),
             # Operator ETH address (stub for now):
-            AccountMeta(pubkey=get_associated_token_address(self.acc.public_key(), ETH_TOKEN_MINT_ID), is_signer=False, is_writable=True),
+            AccountMeta(pubkey=get_associated_token_address(self.acc.public_key(), NEON_TOKEN_MINT_ID), is_signer=False, is_writable=True),
             # User ETH address (stub for now):
-            AccountMeta(pubkey=get_associated_token_address(PublicKey(self.caller), ETH_TOKEN_MINT_ID), is_signer=False, is_writable=True),
+            AccountMeta(pubkey=get_associated_token_address(PublicKey(self.caller), NEON_TOKEN_MINT_ID), is_signer=False, is_writable=True),
             # System program account:
             AccountMeta(pubkey=PublicKey(system), is_signer=False, is_writable=False),
 
             AccountMeta(pubkey=owner_contract, is_signer=False, is_writable=True),
-            AccountMeta(pubkey=get_associated_token_address(PublicKey(owner_contract), ETH_TOKEN_MINT_ID), is_signer=False, is_writable=True),
+            AccountMeta(pubkey=get_associated_token_address(PublicKey(owner_contract), NEON_TOKEN_MINT_ID), is_signer=False, is_writable=True),
             AccountMeta(pubkey=contract_code, is_signer=False, is_writable=True),
             AccountMeta(pubkey=self.caller, is_signer=False, is_writable=True),
-            AccountMeta(pubkey=get_associated_token_address(PublicKey(self.caller), ETH_TOKEN_MINT_ID), is_signer=False, is_writable=True),
+            AccountMeta(pubkey=get_associated_token_address(PublicKey(self.caller), NEON_TOKEN_MINT_ID), is_signer=False, is_writable=True),
 
             AccountMeta(pubkey=self.loader.loader_id, is_signer=False, is_writable=False),
-            AccountMeta(pubkey=ETH_TOKEN_MINT_ID, is_signer=False, is_writable=False),
+            AccountMeta(pubkey=NEON_TOKEN_MINT_ID, is_signer=False, is_writable=False),
             AccountMeta(pubkey=TOKEN_PROGRAM_ID, is_signer=False, is_writable=False),
         ])
 
@@ -129,10 +129,10 @@ class EvmLoaderTestsNewAccount(unittest.TestCase):
 
     def test_success_deletion(self):
         (owner_contract, eth_contract, contract_code) = self.deploy_contract()
-        self.token.transfer(ETH_TOKEN_MINT_ID, 100, get_associated_token_address(PublicKey(owner_contract), ETH_TOKEN_MINT_ID))
+        self.token.transfer(NEON_TOKEN_MINT_ID, 100, get_associated_token_address(PublicKey(owner_contract), NEON_TOKEN_MINT_ID))
 
-        operator_token_balance = int(self.token.balance(get_associated_token_address(PublicKey(self.caller), ETH_TOKEN_MINT_ID)) * 10**9)
-        contract_token_balance = int(self.token.balance(get_associated_token_address(PublicKey(owner_contract), ETH_TOKEN_MINT_ID)) * 10**9)
+        operator_token_balance = int(self.token.balance(get_associated_token_address(PublicKey(self.caller), NEON_TOKEN_MINT_ID)) * 10**9)
+        contract_token_balance = int(self.token.balance(get_associated_token_address(PublicKey(owner_contract), NEON_TOKEN_MINT_ID)) * 10**9)
 
         caller_balance_pre = getBalance(self.acc.public_key())
         contract_balance_pre = getBalance(owner_contract)
@@ -151,8 +151,8 @@ class EvmLoaderTestsNewAccount(unittest.TestCase):
         contract_balance_post = getBalance(owner_contract)
         code_balance_post = getBalance(contract_code)
 
-        operator_token_balance_post = int(self.token.balance(get_associated_token_address(PublicKey(self.caller), ETH_TOKEN_MINT_ID)) * 10**9)
-        contract_token_balance_post = int(self.token.balance(get_associated_token_address(PublicKey(owner_contract), ETH_TOKEN_MINT_ID)) * 10**9)
+        operator_token_balance_post = int(self.token.balance(get_associated_token_address(PublicKey(self.caller), NEON_TOKEN_MINT_ID)) * 10**9)
+        contract_token_balance_post = int(self.token.balance(get_associated_token_address(PublicKey(owner_contract), NEON_TOKEN_MINT_ID)) * 10**9)
 
         # Check that lamports moved from code accounts to caller
         self.assertGreater(caller_balance_post, contract_balance_pre)

@@ -7,7 +7,7 @@ def mint_spl(accounts, instance):
     receipt_error = 0
     account_minted = []
     for (acc_eth_hex, acc_sol) in accounts:
-        dest = get_associated_token_address(PublicKey(acc_sol), ETH_TOKEN_MINT_ID)
+        dest = get_associated_token_address(PublicKey(acc_sol), NEON_TOKEN_MINT_ID)
         print("mint: ", dest)
 
         param = spl_token.TransferParams(
@@ -151,7 +151,7 @@ def create_account_spl(args):
             param = spl_token.TransferParams(
                 program_id = TOKEN_PROGRAM_ID,
                 source = instance.wallet_token,
-                dest = get_associated_token_address(PublicKey(acc_sol), ETH_TOKEN_MINT_ID),
+                dest = get_associated_token_address(PublicKey(acc_sol), NEON_TOKEN_MINT_ID),
                 owner = instance.acc.public_key(),
                 amount=10**9
             )

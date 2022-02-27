@@ -13,7 +13,7 @@ client = Client(solana_url)
 CONTRACTS_DIR = os.environ.get("CONTRACTS_DIR", "evm_loader/")
 evm_loader_id = os.environ.get("EVM_LOADER")
 
-ETH_TOKEN_MINT_ID: PublicKey = PublicKey(os.environ.get("ETH_TOKEN_MINT"))
+NEON_TOKEN_MINT_ID: PublicKey = PublicKey(os.environ.get("NEON_TOKEN_MINT"))
 
 class EventTest(unittest.TestCase):
     @classmethod
@@ -28,13 +28,13 @@ class EventTest(unittest.TestCase):
         # Create ethereum account for user account
         cls.caller_ether = eth_keys.PrivateKey(cls.acc.secret_key()).public_key.to_canonical_address()
         (cls.caller, cls.caller_nonce) = cls.loader.ether2program(cls.caller_ether)
-        cls.caller_token = get_associated_token_address(PublicKey(cls.caller), ETH_TOKEN_MINT_ID)
+        cls.caller_token = get_associated_token_address(PublicKey(cls.caller), NEON_TOKEN_MINT_ID)
 
         if getBalance(cls.caller) == 0:
             print("Create caller account...")
             _ = cls.loader.createEtherAccount(cls.caller_ether)
             print("Done\n")
-        cls.token.transfer(ETH_TOKEN_MINT_ID, 201, cls.caller_token)
+        cls.token.transfer(NEON_TOKEN_MINT_ID, 201, cls.caller_token)
 
         print('Account:', cls.acc.public_key(), bytes(cls.acc.public_key()).hex())
         print("Caller:", cls.caller_ether.hex(), cls.caller_nonce, "->", cls.caller,
@@ -395,14 +395,14 @@ class EventTest(unittest.TestCase):
         storage = self.create_storage_account(sign[:8].hex())
 
         caller_balance_before_cancel = self.token.balance(self.caller_token)
-        operator_balance_before_cancel = self.token.balance(get_associated_token_address(self.acc.public_key(), ETH_TOKEN_MINT_ID))
+        operator_balance_before_cancel = self.token.balance(get_associated_token_address(self.acc.public_key(), NEON_TOKEN_MINT_ID))
 
         result = self.call_begin(storage, 10, msg, instruction)
         result = self.call_continue(storage, 10)
         result = self.call_cancel(storage, nonce)
 
         caller_balance_after_cancel = self.token.balance(self.caller_token)
-        operator_balance_after_cancel = self.token.balance(get_associated_token_address(self.acc.public_key(), ETH_TOKEN_MINT_ID))
+        operator_balance_after_cancel = self.token.balance(get_associated_token_address(self.acc.public_key(), NEON_TOKEN_MINT_ID))
         self.assertNotEqual(caller_balance_after_cancel, caller_balance_before_cancel)
         self.assertEqual(caller_balance_before_cancel+operator_balance_before_cancel, caller_balance_after_cancel+operator_balance_after_cancel)
 

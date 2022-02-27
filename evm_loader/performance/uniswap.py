@@ -202,12 +202,12 @@ def get_salt(tool_sol, tool_code, tool_eth, token_a, token_b, acc):
             data=input,
             keys=[
                 AccountMeta(pubkey=tool_sol, is_signer=False, is_writable=True),
-                AccountMeta(pubkey=get_associated_token_address(PublicKey(tool_sol), ETH_TOKEN_MINT_ID), is_signer=False,
+                AccountMeta(pubkey=get_associated_token_address(PublicKey(tool_sol), NEON_TOKEN_MINT_ID), is_signer=False,
                             is_writable=True),
                 AccountMeta(pubkey=tool_code, is_signer=False, is_writable=True),
                 AccountMeta(pubkey=acc.public_key(), is_signer=True, is_writable=False),
                 AccountMeta(pubkey=evm_loader_id, is_signer=False, is_writable=False),
-                AccountMeta(pubkey=ETH_TOKEN_MINT_ID, is_signer=False, is_writable=False),
+                AccountMeta(pubkey=NEON_TOKEN_MINT_ID, is_signer=False, is_writable=False),
                 AccountMeta(pubkey=TOKEN_PROGRAM_ID, is_signer=False, is_writable=False),
                 AccountMeta(pubkey=PublicKey(sysvarclock), is_signer=False, is_writable=False),
             ]))
@@ -403,26 +403,26 @@ def add_liquidity(args):
             AccountMeta(pubkey=storage, is_signer=False, is_writable=True),
 
             AccountMeta(pubkey=router_sol, is_signer=False, is_writable=True),
-            AccountMeta(pubkey=get_associated_token_address(PublicKey(router_sol), ETH_TOKEN_MINT_ID), is_signer=False, is_writable=True),
+            AccountMeta(pubkey=get_associated_token_address(PublicKey(router_sol), NEON_TOKEN_MINT_ID), is_signer=False, is_writable=True),
             AccountMeta(pubkey=router_code, is_signer=False, is_writable=True),
 
             AccountMeta(pubkey=msg_sender_sol, is_signer=False, is_writable=True),
-            AccountMeta(pubkey=get_associated_token_address(PublicKey(msg_sender_sol), ETH_TOKEN_MINT_ID), is_signer=False, is_writable=True),
+            AccountMeta(pubkey=get_associated_token_address(PublicKey(msg_sender_sol), NEON_TOKEN_MINT_ID), is_signer=False, is_writable=True),
 
             AccountMeta(pubkey=token_a_sol, is_signer=False, is_writable=True),
-            AccountMeta(pubkey=get_associated_token_address(PublicKey(token_a_sol), ETH_TOKEN_MINT_ID), is_signer=False, is_writable=True),
+            AccountMeta(pubkey=get_associated_token_address(PublicKey(token_a_sol), NEON_TOKEN_MINT_ID), is_signer=False, is_writable=True),
             AccountMeta(pubkey=token_a_code, is_signer=False, is_writable=True),
 
             AccountMeta(pubkey=token_b_sol, is_signer=False, is_writable=True),
-            AccountMeta(pubkey=get_associated_token_address(PublicKey(token_b_sol), ETH_TOKEN_MINT_ID), is_signer=False,is_writable=True),
+            AccountMeta(pubkey=get_associated_token_address(PublicKey(token_b_sol), NEON_TOKEN_MINT_ID), is_signer=False,is_writable=True),
             AccountMeta(pubkey=token_b_code, is_signer=False, is_writable=True),
 
             AccountMeta(pubkey=factory_sol, is_signer=False, is_writable=True),
-            AccountMeta(pubkey=get_associated_token_address(PublicKey(factory_sol), ETH_TOKEN_MINT_ID), is_signer=False,is_writable=True),
+            AccountMeta(pubkey=get_associated_token_address(PublicKey(factory_sol), NEON_TOKEN_MINT_ID), is_signer=False,is_writable=True),
             AccountMeta(pubkey=factory_code, is_signer=False, is_writable=True),
 
             AccountMeta(pubkey=pair_sol, is_signer=False, is_writable=True),
-            AccountMeta(pubkey=get_associated_token_address(PublicKey(pair_sol), ETH_TOKEN_MINT_ID), is_signer=False,is_writable=True),
+            AccountMeta(pubkey=get_associated_token_address(PublicKey(pair_sol), NEON_TOKEN_MINT_ID), is_signer=False,is_writable=True),
             AccountMeta(pubkey=pair_code, is_signer=False, is_writable=True),
 
             AccountMeta(pubkey=PublicKey(sysinstruct), is_signer=False, is_writable=False),
@@ -543,26 +543,26 @@ def create_transactions_swap(args):
             AccountMeta(pubkey=storage, is_signer=False, is_writable=True),
 
             AccountMeta(pubkey=router_sol, is_signer=False, is_writable=True),
-            AccountMeta(pubkey=get_associated_token_address(PublicKey(router_sol), ETH_TOKEN_MINT_ID), is_signer=False, is_writable=True),
+            AccountMeta(pubkey=get_associated_token_address(PublicKey(router_sol), NEON_TOKEN_MINT_ID), is_signer=False, is_writable=True),
             AccountMeta(pubkey=router_code, is_signer=False, is_writable=True),
 
             AccountMeta(pubkey=msg_sender_sol, is_signer=False, is_writable=True),
-            AccountMeta(pubkey=get_associated_token_address(PublicKey(msg_sender_sol), ETH_TOKEN_MINT_ID), is_signer=False, is_writable=True),
+            AccountMeta(pubkey=get_associated_token_address(PublicKey(msg_sender_sol), NEON_TOKEN_MINT_ID), is_signer=False, is_writable=True),
 
             AccountMeta(pubkey=token_a_sol, is_signer=False, is_writable=True),
-            AccountMeta(pubkey=get_associated_token_address(PublicKey(token_a_sol), ETH_TOKEN_MINT_ID), is_signer=False, is_writable=True),
+            AccountMeta(pubkey=get_associated_token_address(PublicKey(token_a_sol), NEON_TOKEN_MINT_ID), is_signer=False, is_writable=True),
             AccountMeta(pubkey=token_a_code, is_signer=False, is_writable=True),
 
             AccountMeta(pubkey=token_b_sol, is_signer=False, is_writable=True),
-            AccountMeta(pubkey=get_associated_token_address(PublicKey(token_b_sol), ETH_TOKEN_MINT_ID), is_signer=False,is_writable=True),
+            AccountMeta(pubkey=get_associated_token_address(PublicKey(token_b_sol), NEON_TOKEN_MINT_ID), is_signer=False,is_writable=True),
             AccountMeta(pubkey=token_b_code, is_signer=False, is_writable=True),
 
             AccountMeta(pubkey=factory_sol, is_signer=False, is_writable=True),
-            AccountMeta(pubkey=get_associated_token_address(PublicKey(factory_sol), ETH_TOKEN_MINT_ID), is_signer=False,is_writable=True),
+            AccountMeta(pubkey=get_associated_token_address(PublicKey(factory_sol), NEON_TOKEN_MINT_ID), is_signer=False,is_writable=True),
             AccountMeta(pubkey=factory_code, is_signer=False, is_writable=True),
 
             AccountMeta(pubkey=pair_sol, is_signer=False, is_writable=True),
-            AccountMeta(pubkey=get_associated_token_address(PublicKey(pair_sol), ETH_TOKEN_MINT_ID), is_signer=False,is_writable=True),
+            AccountMeta(pubkey=get_associated_token_address(PublicKey(pair_sol), NEON_TOKEN_MINT_ID), is_signer=False,is_writable=True),
             AccountMeta(pubkey=pair_code, is_signer=False, is_writable=True),
 
             AccountMeta(pubkey=PublicKey(sysinstruct), is_signer=False, is_writable=False),

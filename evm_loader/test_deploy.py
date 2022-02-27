@@ -12,7 +12,7 @@ solana_url = os.environ.get("SOLANA_URL", "http://localhost:8899")
 client = Client(solana_url)
 CONTRACTS_DIR = os.environ.get("CONTRACTS_DIR", "evm_loader/")
 evm_loader_id = os.environ.get("EVM_LOADER")
-ETH_TOKEN_MINT_ID: PublicKey = PublicKey(os.environ.get("ETH_TOKEN_MINT"))
+NEON_TOKEN_MINT_ID: PublicKey = PublicKey(os.environ.get("NEON_TOKEN_MINT"))
 
 contract_name = "helloWorld.binary"
 # "ERC20Wrapper.binary"
@@ -64,7 +64,7 @@ class DeployTest(unittest.TestCase):
         if getBalance(cls.caller) == 0:
             print("Create caller account...")
             _ = cls.loader.createEtherAccount(cls.caller_ether)
-            cls.token.transfer(ETH_TOKEN_MINT_ID, 201, get_associated_token_address(PublicKey(cls.caller), ETH_TOKEN_MINT_ID))
+            cls.token.transfer(NEON_TOKEN_MINT_ID, 201, get_associated_token_address(PublicKey(cls.caller), NEON_TOKEN_MINT_ID))
             print("Done\n")
 
         print('Account:', cls.user_acc.public_key(), bytes(cls.user_acc.public_key()).hex())
@@ -156,10 +156,10 @@ class DeployTest(unittest.TestCase):
             keys=[
                 AccountMeta(pubkey=self.operator_acc.public_key(), is_signer=True, is_writable=False),
                 AccountMeta(pubkey=contract_sol, is_signer=False, is_writable=True),
-                AccountMeta(pubkey=get_associated_token_address(PublicKey(contract_sol), ETH_TOKEN_MINT_ID), is_signer=False, is_writable=True),
+                AccountMeta(pubkey=get_associated_token_address(PublicKey(contract_sol), NEON_TOKEN_MINT_ID), is_signer=False, is_writable=True),
                 AccountMeta(pubkey=code_sol, is_signer=False, is_writable=True),
                 AccountMeta(pubkey=system, is_signer=False, is_writable=False),
-                AccountMeta(pubkey=ETH_TOKEN_MINT_ID, is_signer=False, is_writable=False),
+                AccountMeta(pubkey=NEON_TOKEN_MINT_ID, is_signer=False, is_writable=False),
                 AccountMeta(pubkey=TOKEN_PROGRAM_ID, is_signer=False, is_writable=False),
                 AccountMeta(pubkey=ASSOCIATED_TOKEN_PROGRAM_ID, is_signer=False, is_writable=False),
                 AccountMeta(pubkey=rentid, is_signer=False, is_writable=False),

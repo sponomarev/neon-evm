@@ -31,12 +31,12 @@ def get_filehash(factory, factory_code, factory_eth, acc):
             data=bytearray.fromhex("03") + abi.function_signature_to_4byte_selector('get_hash()'),
             keys=[
                 AccountMeta(pubkey=factory, is_signer=False, is_writable=True),
-                AccountMeta(pubkey=get_associated_token_address(PublicKey(factory), ETH_TOKEN_MINT_ID), is_signer=False,
+                AccountMeta(pubkey=get_associated_token_address(PublicKey(factory), NEON_TOKEN_MINT_ID), is_signer=False,
                             is_writable=True),
                 AccountMeta(pubkey=factory_code, is_signer=False, is_writable=True),
                 AccountMeta(pubkey=acc.public_key(), is_signer=True, is_writable=False),
                 AccountMeta(pubkey=evm_loader_id, is_signer=False, is_writable=False),
-                AccountMeta(pubkey=ETH_TOKEN_MINT_ID, is_signer=False, is_writable=False),
+                AccountMeta(pubkey=NEON_TOKEN_MINT_ID, is_signer=False, is_writable=False),
                 AccountMeta(pubkey=TOKEN_PROGRAM_ID, is_signer=False, is_writable=False),
                 AccountMeta(pubkey=PublicKey(sysvarclock), is_signer=False, is_writable=False),
             ]))
@@ -127,16 +127,16 @@ def deploy_erc20(args):
                 data=trx_data,
                 keys=[
                     AccountMeta(pubkey=factory, is_signer=False, is_writable=True),
-                    AccountMeta(pubkey=get_associated_token_address(PublicKey(factory), ETH_TOKEN_MINT_ID),
+                    AccountMeta(pubkey=get_associated_token_address(PublicKey(factory), NEON_TOKEN_MINT_ID),
                                 is_signer=False, is_writable=True),
                     AccountMeta(pubkey=factory_code, is_signer=False, is_writable=True),
                     AccountMeta(pubkey=instance.acc.public_key(), is_signer=True, is_writable=False),
                     AccountMeta(pubkey=erc20_id, is_signer=False, is_writable=True),
-                    AccountMeta(pubkey=get_associated_token_address(PublicKey(erc20_id), ETH_TOKEN_MINT_ID),
+                    AccountMeta(pubkey=get_associated_token_address(PublicKey(erc20_id), NEON_TOKEN_MINT_ID),
                                 is_signer=False, is_writable=True),
                     AccountMeta(pubkey=erc20_code, is_signer=False, is_writable=True),
                     AccountMeta(pubkey=evm_loader_id, is_signer=False, is_writable=False),
-                    AccountMeta(pubkey=ETH_TOKEN_MINT_ID, is_signer=False, is_writable=False),
+                    AccountMeta(pubkey=NEON_TOKEN_MINT_ID, is_signer=False, is_writable=False),
                     AccountMeta(pubkey=TOKEN_PROGRAM_ID, is_signer=False, is_writable=False),
                     AccountMeta(pubkey=PublicKey(sysvarclock), is_signer=False, is_writable=False),
                 ]))
@@ -517,7 +517,7 @@ def create_senders(args):
             param = TransferParams(from_pubkey= instance.acc.public_key(), to_pubkey=acc.public_key(), lamports=1000000)
             tx = Transaction()
             tx.add(transfer(param))
-            tx.add(create_associated_token_account(instance.acc.public_key(), acc.public_key(), ETH_TOKEN_MINT_ID))
+            tx.add(create_associated_token_account(instance.acc.public_key(), acc.public_key(), NEON_TOKEN_MINT_ID))
             res = client.send_transaction(tx, instance.acc,
                                           opts=TxOpts(skip_confirmation=True, skip_preflight=True, preflight_commitment="confirmed"))
 
@@ -531,7 +531,7 @@ def create_senders(args):
                         confirmed = confirmed + 1
                         keypair = acc.secret_key().hex() + bytes(acc.public_key()).hex()
                         f.write(keypair + "\n")
-                        print(f"confirmed {confirmed} ", acc.public_key(), get_associated_token_address(acc.public_key(), ETH_TOKEN_MINT_ID))
+                        print(f"confirmed {confirmed} ", acc.public_key(), get_associated_token_address(acc.public_key(), NEON_TOKEN_MINT_ID))
                     except:
                         print(f"transaction is lost {receipt}")
                 receipt_list = []

@@ -15,7 +15,7 @@ solana_url = os.environ.get("SOLANA_URL", "http://localhost:8899")
 http_client = Client(solana_url)
 CONTRACTS_DIR = os.environ.get("CONTRACTS_DIR", "evm_loader/")
 # CONTRACTS_DIR = os.environ.get("CONTRACTS_DIR", "")
-ETH_TOKEN_MINT_ID: PublicKey = PublicKey(os.environ.get("ETH_TOKEN_MINT"))
+NEON_TOKEN_MINT_ID: PublicKey = PublicKey(os.environ.get("NEON_TOKEN_MINT"))
 evm_loader_id = os.environ.get("EVM_LOADER")
 # evm_loader_id = "7NXfEKTMhPdkviCjWipXxUtkEMDRzPJMQnz39aRMCwb1"
 holder_id = 0;
@@ -73,7 +73,7 @@ class EventTest(unittest.TestCase):
         if getBalance(cls.caller) < 20:
             print("Create caller account...")
             _ = cls.loader.createEtherAccount(cls.caller_ether)
-            cls.token.transfer(ETH_TOKEN_MINT_ID, 201, get_associated_token_address(PublicKey(cls.caller), ETH_TOKEN_MINT_ID))
+            cls.token.transfer(NEON_TOKEN_MINT_ID, 201, get_associated_token_address(PublicKey(cls.caller), NEON_TOKEN_MINT_ID))
             print("Done\n")
 
         print('Account:', cls.acc.public_key(), bytes(cls.acc.public_key()).hex())
@@ -135,37 +135,37 @@ class EventTest(unittest.TestCase):
                 # Collateral pool address:
                 AccountMeta(pubkey=self.collateral_pool_address, is_signer=False, is_writable=True),
                 # Operator's NEON token account:
-                AccountMeta(pubkey=get_associated_token_address(self.acc.public_key(), ETH_TOKEN_MINT_ID), is_signer=False, is_writable=True),
+                AccountMeta(pubkey=get_associated_token_address(self.acc.public_key(), NEON_TOKEN_MINT_ID), is_signer=False, is_writable=True),
                 # User's NEON token account:
-                AccountMeta(pubkey=get_associated_token_address(PublicKey(self.caller), ETH_TOKEN_MINT_ID), is_signer=False, is_writable=True),
+                AccountMeta(pubkey=get_associated_token_address(PublicKey(self.caller), NEON_TOKEN_MINT_ID), is_signer=False, is_writable=True),
                 # System program account:
                 AccountMeta(pubkey=PublicKey(system), is_signer=False, is_writable=False),
 
                 AccountMeta(pubkey=contract, is_signer=False, is_writable=True),
-                AccountMeta(pubkey=get_associated_token_address(PublicKey(contract), ETH_TOKEN_MINT_ID), is_signer=False, is_writable=True),
+                AccountMeta(pubkey=get_associated_token_address(PublicKey(contract), NEON_TOKEN_MINT_ID), is_signer=False, is_writable=True),
                 AccountMeta(pubkey=code, is_signer=False, is_writable=True),
 
                 AccountMeta(pubkey=self.caller, is_signer=False, is_writable=True),
-                AccountMeta(pubkey=get_associated_token_address(PublicKey(self.caller), ETH_TOKEN_MINT_ID), is_signer=False, is_writable=True),
+                AccountMeta(pubkey=get_associated_token_address(PublicKey(self.caller), NEON_TOKEN_MINT_ID), is_signer=False, is_writable=True),
 
                 AccountMeta(pubkey=self.reId_reciever, is_signer=False, is_writable=True),
-                AccountMeta(pubkey=get_associated_token_address(PublicKey(self.reId_reciever), ETH_TOKEN_MINT_ID), is_signer=False, is_writable=True),
+                AccountMeta(pubkey=get_associated_token_address(PublicKey(self.reId_reciever), NEON_TOKEN_MINT_ID), is_signer=False, is_writable=True),
                 AccountMeta(pubkey=self.reId_reciever_code, is_signer=False, is_writable=True),
 
                 AccountMeta(pubkey=self.reId_recover, is_signer=False, is_writable=True),
-                AccountMeta(pubkey=get_associated_token_address(PublicKey(self.reId_recover), ETH_TOKEN_MINT_ID), is_signer=False, is_writable=True),
+                AccountMeta(pubkey=get_associated_token_address(PublicKey(self.reId_recover), NEON_TOKEN_MINT_ID), is_signer=False, is_writable=True),
                 AccountMeta(pubkey=self.reId_recover_code, is_signer=False, is_writable=True),
 
                 AccountMeta(pubkey=self.reId_create_receiver, is_signer=False, is_writable=True),
-                AccountMeta(pubkey=get_associated_token_address(PublicKey(self.reId_create_receiver), ETH_TOKEN_MINT_ID), is_signer=False, is_writable=True),
+                AccountMeta(pubkey=get_associated_token_address(PublicKey(self.reId_create_receiver), NEON_TOKEN_MINT_ID), is_signer=False, is_writable=True),
                 AccountMeta(pubkey=self.reId_create_receiver_code_account, is_signer=False, is_writable=True),
 
                 AccountMeta(pubkey=self.reId_revert, is_signer=False, is_writable=True),
-                AccountMeta(pubkey=get_associated_token_address(PublicKey(self.reId_revert), ETH_TOKEN_MINT_ID), is_signer=False, is_writable=True),
+                AccountMeta(pubkey=get_associated_token_address(PublicKey(self.reId_revert), NEON_TOKEN_MINT_ID), is_signer=False, is_writable=True),
                 AccountMeta(pubkey=self.reId_revert_code, is_signer=False, is_writable=True),
 
                 AccountMeta(pubkey=self.loader.loader_id, is_signer=False, is_writable=False),
-                AccountMeta(pubkey=ETH_TOKEN_MINT_ID, is_signer=False, is_writable=False),
+                AccountMeta(pubkey=NEON_TOKEN_MINT_ID, is_signer=False, is_writable=False),
                 AccountMeta(pubkey=TOKEN_PROGRAM_ID, is_signer=False, is_writable=False),
             ])
 
@@ -183,37 +183,37 @@ class EventTest(unittest.TestCase):
                 # Collateral pool address:
                 AccountMeta(pubkey=self.collateral_pool_address, is_signer=False, is_writable=True),
                 # Operator's NEON token account:
-                AccountMeta(pubkey=get_associated_token_address(self.acc.public_key(), ETH_TOKEN_MINT_ID), is_signer=False, is_writable=True),
+                AccountMeta(pubkey=get_associated_token_address(self.acc.public_key(), NEON_TOKEN_MINT_ID), is_signer=False, is_writable=True),
                 # User's NEON token account:
-                AccountMeta(pubkey=get_associated_token_address(PublicKey(self.caller), ETH_TOKEN_MINT_ID), is_signer=False, is_writable=True),
+                AccountMeta(pubkey=get_associated_token_address(PublicKey(self.caller), NEON_TOKEN_MINT_ID), is_signer=False, is_writable=True),
                 # System program account:
                 AccountMeta(pubkey=PublicKey(system), is_signer=False, is_writable=False),
 
                 AccountMeta(pubkey=contract, is_signer=False, is_writable=True),
-                AccountMeta(pubkey=get_associated_token_address(PublicKey(contract), ETH_TOKEN_MINT_ID), is_signer=False, is_writable=True),
+                AccountMeta(pubkey=get_associated_token_address(PublicKey(contract), NEON_TOKEN_MINT_ID), is_signer=False, is_writable=True),
                 AccountMeta(pubkey=code, is_signer=False, is_writable=True),
 
                 AccountMeta(pubkey=self.caller, is_signer=False, is_writable=True),
-                AccountMeta(pubkey=get_associated_token_address(PublicKey(self.caller), ETH_TOKEN_MINT_ID), is_signer=False, is_writable=True),
+                AccountMeta(pubkey=get_associated_token_address(PublicKey(self.caller), NEON_TOKEN_MINT_ID), is_signer=False, is_writable=True),
 
                 AccountMeta(pubkey=self.reId_reciever, is_signer=False, is_writable=True),
-                AccountMeta(pubkey=get_associated_token_address(PublicKey(self.reId_reciever), ETH_TOKEN_MINT_ID), is_signer=False, is_writable=True),
+                AccountMeta(pubkey=get_associated_token_address(PublicKey(self.reId_reciever), NEON_TOKEN_MINT_ID), is_signer=False, is_writable=True),
                 AccountMeta(pubkey=self.reId_reciever_code, is_signer=False, is_writable=True),
 
                 AccountMeta(pubkey=self.reId_recover, is_signer=False, is_writable=True),
-                AccountMeta(pubkey=get_associated_token_address(PublicKey(self.reId_recover), ETH_TOKEN_MINT_ID), is_signer=False, is_writable=True),
+                AccountMeta(pubkey=get_associated_token_address(PublicKey(self.reId_recover), NEON_TOKEN_MINT_ID), is_signer=False, is_writable=True),
                 AccountMeta(pubkey=self.reId_recover_code, is_signer=False, is_writable=True),
 
                 AccountMeta(pubkey=self.reId_create_receiver, is_signer=False, is_writable=True),
-                AccountMeta(pubkey=get_associated_token_address(PublicKey(self.reId_create_receiver), ETH_TOKEN_MINT_ID), is_signer=False, is_writable=True),
+                AccountMeta(pubkey=get_associated_token_address(PublicKey(self.reId_create_receiver), NEON_TOKEN_MINT_ID), is_signer=False, is_writable=True),
                 AccountMeta(pubkey=self.reId_create_receiver_code_account, is_signer=False, is_writable=True),
 
                 AccountMeta(pubkey=self.reId_revert, is_signer=False, is_writable=True),
-                AccountMeta(pubkey=get_associated_token_address(PublicKey(self.reId_revert), ETH_TOKEN_MINT_ID), is_signer=False, is_writable=True),
+                AccountMeta(pubkey=get_associated_token_address(PublicKey(self.reId_revert), NEON_TOKEN_MINT_ID), is_signer=False, is_writable=True),
                 AccountMeta(pubkey=self.reId_revert_code, is_signer=False, is_writable=True),
 
                 AccountMeta(pubkey=self.loader.loader_id, is_signer=False, is_writable=False),
-                AccountMeta(pubkey=ETH_TOKEN_MINT_ID, is_signer=False, is_writable=False),
+                AccountMeta(pubkey=NEON_TOKEN_MINT_ID, is_signer=False, is_writable=False),
                 AccountMeta(pubkey=TOKEN_PROGRAM_ID, is_signer=False, is_writable=False),
             ])
 
@@ -229,41 +229,41 @@ class EventTest(unittest.TestCase):
                 # Collateral pool address:
                 AccountMeta(pubkey=self.collateral_pool_address, is_signer=False, is_writable=True),
                 # Operator's NEON token account:
-                AccountMeta(pubkey=get_associated_token_address(self.acc.public_key(), ETH_TOKEN_MINT_ID), is_signer=False, is_writable=True),
+                AccountMeta(pubkey=get_associated_token_address(self.acc.public_key(), NEON_TOKEN_MINT_ID), is_signer=False, is_writable=True),
                 # User's NEON token account:
-                AccountMeta(pubkey=get_associated_token_address(PublicKey(self.caller), ETH_TOKEN_MINT_ID), is_signer=False, is_writable=True),
+                AccountMeta(pubkey=get_associated_token_address(PublicKey(self.caller), NEON_TOKEN_MINT_ID), is_signer=False, is_writable=True),
                 # System program account:
                 AccountMeta(pubkey=PublicKey(system), is_signer=False, is_writable=False),
 
                 AccountMeta(pubkey=contract, is_signer=False, is_writable=True),
-                AccountMeta(pubkey=get_associated_token_address(PublicKey(contract), ETH_TOKEN_MINT_ID), is_signer=False, is_writable=True),
+                AccountMeta(pubkey=get_associated_token_address(PublicKey(contract), NEON_TOKEN_MINT_ID), is_signer=False, is_writable=True),
                 AccountMeta(pubkey=code, is_signer=False, is_writable=True),
 
                 AccountMeta(pubkey=self.caller, is_signer=False, is_writable=True),
-                AccountMeta(pubkey=get_associated_token_address(PublicKey(self.caller), ETH_TOKEN_MINT_ID), is_signer=False, is_writable=True),
+                AccountMeta(pubkey=get_associated_token_address(PublicKey(self.caller), NEON_TOKEN_MINT_ID), is_signer=False, is_writable=True),
 
                 # AccountMeta(pubkey=self.reId_caller, is_signer=False, is_writable=True),
-                # AccountMeta(pubkey=get_associated_token_address(PublicKey(self.reId_caller), ETH_TOKEN_MINT_ID), is_signer=False, is_writable=True),
+                # AccountMeta(pubkey=get_associated_token_address(PublicKey(self.reId_caller), NEON_TOKEN_MINT_ID), is_signer=False, is_writable=True),
                 # AccountMeta(pubkey=self.reId_caller_code, is_signer=False, is_writable=True),
 
                 AccountMeta(pubkey=self.reId_reciever, is_signer=False, is_writable=True),
-                AccountMeta(pubkey=get_associated_token_address(PublicKey(self.reId_reciever), ETH_TOKEN_MINT_ID), is_signer=False, is_writable=True),
+                AccountMeta(pubkey=get_associated_token_address(PublicKey(self.reId_reciever), NEON_TOKEN_MINT_ID), is_signer=False, is_writable=True),
                 AccountMeta(pubkey=self.reId_reciever_code, is_signer=False, is_writable=True),
 
                 AccountMeta(pubkey=self.reId_recover, is_signer=False, is_writable=True),
-                AccountMeta(pubkey=get_associated_token_address(PublicKey(self.reId_recover), ETH_TOKEN_MINT_ID), is_signer=False, is_writable=True),
+                AccountMeta(pubkey=get_associated_token_address(PublicKey(self.reId_recover), NEON_TOKEN_MINT_ID), is_signer=False, is_writable=True),
                 AccountMeta(pubkey=self.reId_recover_code, is_signer=False, is_writable=True),
 
                 AccountMeta(pubkey=self.reId_create_receiver, is_signer=False, is_writable=True),
-                AccountMeta(pubkey=get_associated_token_address(PublicKey(self.reId_create_receiver), ETH_TOKEN_MINT_ID), is_signer=False, is_writable=True),
+                AccountMeta(pubkey=get_associated_token_address(PublicKey(self.reId_create_receiver), NEON_TOKEN_MINT_ID), is_signer=False, is_writable=True),
                 AccountMeta(pubkey=self.reId_create_receiver_code_account, is_signer=False, is_writable=True),
 
                 AccountMeta(pubkey=self.reId_revert, is_signer=False, is_writable=True),
-                AccountMeta(pubkey=get_associated_token_address(PublicKey(self.reId_revert), ETH_TOKEN_MINT_ID), is_signer=False, is_writable=True),
+                AccountMeta(pubkey=get_associated_token_address(PublicKey(self.reId_revert), NEON_TOKEN_MINT_ID), is_signer=False, is_writable=True),
                 AccountMeta(pubkey=self.reId_revert_code, is_signer=False, is_writable=True),
 
                 AccountMeta(pubkey=self.loader.loader_id, is_signer=False, is_writable=False),
-                AccountMeta(pubkey=ETH_TOKEN_MINT_ID, is_signer=False, is_writable=False),
+                AccountMeta(pubkey=NEON_TOKEN_MINT_ID, is_signer=False, is_writable=False),
                 AccountMeta(pubkey=TOKEN_PROGRAM_ID, is_signer=False, is_writable=False),
             ])
 
@@ -280,41 +280,41 @@ class EventTest(unittest.TestCase):
                 # Collateral pool address:
                 AccountMeta(pubkey=self.collateral_pool_address, is_signer=False, is_writable=True),
                 # Operator's NEON token account:
-                AccountMeta(pubkey=get_associated_token_address(self.acc.public_key(), ETH_TOKEN_MINT_ID), is_signer=False, is_writable=True),
+                AccountMeta(pubkey=get_associated_token_address(self.acc.public_key(), NEON_TOKEN_MINT_ID), is_signer=False, is_writable=True),
                 # User's NEON token account:
-                AccountMeta(pubkey=get_associated_token_address(PublicKey(self.caller), ETH_TOKEN_MINT_ID), is_signer=False, is_writable=True),
+                AccountMeta(pubkey=get_associated_token_address(PublicKey(self.caller), NEON_TOKEN_MINT_ID), is_signer=False, is_writable=True),
                 # System program account:
                 AccountMeta(pubkey=PublicKey(system), is_signer=False, is_writable=False),
 
                 AccountMeta(pubkey=contract, is_signer=False, is_writable=True),
-                AccountMeta(pubkey=get_associated_token_address(PublicKey(contract), ETH_TOKEN_MINT_ID), is_signer=False, is_writable=True),
+                AccountMeta(pubkey=get_associated_token_address(PublicKey(contract), NEON_TOKEN_MINT_ID), is_signer=False, is_writable=True),
                 AccountMeta(pubkey=code, is_signer=False, is_writable=True),
 
                 AccountMeta(pubkey=self.caller, is_signer=False, is_writable=True),
-                AccountMeta(pubkey=get_associated_token_address(PublicKey(self.caller), ETH_TOKEN_MINT_ID), is_signer=False, is_writable=True),
+                AccountMeta(pubkey=get_associated_token_address(PublicKey(self.caller), NEON_TOKEN_MINT_ID), is_signer=False, is_writable=True),
 
                 AccountMeta(pubkey=self.reId_caller, is_signer=False, is_writable=True),
-                AccountMeta(pubkey=get_associated_token_address(PublicKey(self.reId_caller), ETH_TOKEN_MINT_ID), is_signer=False, is_writable=True),
+                AccountMeta(pubkey=get_associated_token_address(PublicKey(self.reId_caller), NEON_TOKEN_MINT_ID), is_signer=False, is_writable=True),
                 AccountMeta(pubkey=self.reId_caller_code, is_signer=False, is_writable=True),
 
                 AccountMeta(pubkey=self.reId_reciever, is_signer=False, is_writable=True),
-                AccountMeta(pubkey=get_associated_token_address(PublicKey(self.reId_reciever), ETH_TOKEN_MINT_ID), is_signer=False, is_writable=True),
+                AccountMeta(pubkey=get_associated_token_address(PublicKey(self.reId_reciever), NEON_TOKEN_MINT_ID), is_signer=False, is_writable=True),
                 AccountMeta(pubkey=self.reId_reciever_code, is_signer=False, is_writable=True),
 
                 AccountMeta(pubkey=self.reId_recover, is_signer=False, is_writable=True),
-                AccountMeta(pubkey=get_associated_token_address(PublicKey(self.reId_recover), ETH_TOKEN_MINT_ID), is_signer=False, is_writable=True),
+                AccountMeta(pubkey=get_associated_token_address(PublicKey(self.reId_recover), NEON_TOKEN_MINT_ID), is_signer=False, is_writable=True),
                 AccountMeta(pubkey=self.reId_recover_code, is_signer=False, is_writable=True),
 
                 AccountMeta(pubkey=self.reId_create_receiver, is_signer=False, is_writable=True),
-                AccountMeta(pubkey=get_associated_token_address(PublicKey(self.reId_create_receiver), ETH_TOKEN_MINT_ID), is_signer=False, is_writable=True),
+                AccountMeta(pubkey=get_associated_token_address(PublicKey(self.reId_create_receiver), NEON_TOKEN_MINT_ID), is_signer=False, is_writable=True),
                 AccountMeta(pubkey=self.reId_create_receiver_code_account, is_signer=False, is_writable=True),
 
                 AccountMeta(pubkey=self.reId_revert, is_signer=False, is_writable=True),
-                AccountMeta(pubkey=get_associated_token_address(PublicKey(self.reId_revert), ETH_TOKEN_MINT_ID), is_signer=False, is_writable=True),
+                AccountMeta(pubkey=get_associated_token_address(PublicKey(self.reId_revert), NEON_TOKEN_MINT_ID), is_signer=False, is_writable=True),
                 AccountMeta(pubkey=self.reId_revert_code, is_signer=False, is_writable=True),
 
                 AccountMeta(pubkey=self.loader.loader_id, is_signer=False, is_writable=False),
-                AccountMeta(pubkey=ETH_TOKEN_MINT_ID, is_signer=False, is_writable=False),
+                AccountMeta(pubkey=NEON_TOKEN_MINT_ID, is_signer=False, is_writable=False),
                 AccountMeta(pubkey=TOKEN_PROGRAM_ID, is_signer=False, is_writable=False),
             ])
 

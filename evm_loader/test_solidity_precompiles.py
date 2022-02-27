@@ -12,7 +12,7 @@ from solana_utils import *
 
 CONTRACTS_DIR = os.environ.get("CONTRACTS_DIR", "evm_loader/")
 evm_loader_id = os.environ.get("EVM_LOADER")
-ETH_TOKEN_MINT_ID: PublicKey = PublicKey(os.environ.get("ETH_TOKEN_MINT"))
+NEON_TOKEN_MINT_ID: PublicKey = PublicKey(os.environ.get("NEON_TOKEN_MINT"))
 holder_id = 0
 
 class PrecompilesTests(unittest.TestCase):
@@ -28,12 +28,12 @@ class PrecompilesTests(unittest.TestCase):
         # Create ethereum account for user account
         cls.caller_ether = eth_keys.PrivateKey(cls.acc.secret_key()).public_key.to_canonical_address()
         (cls.caller, cls.caller_nonce) = cls.loader.ether2program(cls.caller_ether)
-        cls.caller_token = get_associated_token_address(PublicKey(cls.caller), ETH_TOKEN_MINT_ID)
+        cls.caller_token = get_associated_token_address(PublicKey(cls.caller), NEON_TOKEN_MINT_ID)
 
         if getBalance(cls.caller) == 0:
             print("Create caller account...")
             _ = cls.loader.createEtherAccount(cls.caller_ether)
-            cls.token.transfer(ETH_TOKEN_MINT_ID, 201, get_associated_token_address(PublicKey(cls.caller), ETH_TOKEN_MINT_ID))
+            cls.token.transfer(NEON_TOKEN_MINT_ID, 201, get_associated_token_address(PublicKey(cls.caller), NEON_TOKEN_MINT_ID))
             print("Done\n")
 
         print('Account:', cls.acc.public_key(), bytes(cls.acc.public_key()).hex())

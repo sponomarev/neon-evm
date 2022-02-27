@@ -36,7 +36,7 @@ transactions_file = "transaction.json"
 senders_file = "sender.json"
 verify_file = "verify.json"
 collateral_file = "collateral.json"
-ETH_TOKEN_MINT_ID: PublicKey = PublicKey(os.environ.get("ETH_TOKEN_MINT"))
+NEON_TOKEN_MINT_ID: PublicKey = PublicKey(os.environ.get("NEON_TOKEN_MINT"))
 
 trx_count = {}
 
@@ -78,9 +78,9 @@ class init_wallet():
 
         regular_wallet = WalletAccount(wallet_path())
         cls.regular_acc = regular_wallet.get_acc()
-        # cls.wallet_token = cls.token.create_token_account(ETH_TOKEN_MINT_ID, owner=wallet.get_path())
-        cls.wallet_token = get_associated_token_address(PublicKey(wallet.get_acc().public_key()), ETH_TOKEN_MINT_ID)
-        # cls.token.mint(ETH_TOKEN_MINT_ID, cls.wallet_token, 10000)
+        # cls.wallet_token = cls.token.create_token_account(NEON_TOKEN_MINT_ID, owner=wallet.get_path())
+        cls.wallet_token = get_associated_token_address(PublicKey(wallet.get_acc().public_key()), NEON_TOKEN_MINT_ID)
+        # cls.token.mint(NEON_TOKEN_MINT_ID, cls.wallet_token, 10000)
 
 
         assert (getBalance(wallet.get_acc().public_key()) > 0)
@@ -266,12 +266,12 @@ def sol_instr_keccak(keccak_instruction):
 def sol_instr_05(evm_instruction, contract, contract_code, caller):
     account_meta = [
         AccountMeta(pubkey=contract, is_signer=False, is_writable=True),
-        AccountMeta(pubkey=get_associated_token_address(PublicKey(contract), ETH_TOKEN_MINT_ID), is_signer=False, is_writable=True),
+        AccountMeta(pubkey=get_associated_token_address(PublicKey(contract), NEON_TOKEN_MINT_ID), is_signer=False, is_writable=True),
         AccountMeta(pubkey=caller, is_signer=False, is_writable=True),
-        AccountMeta(pubkey=get_associated_token_address(PublicKey(caller), ETH_TOKEN_MINT_ID), is_signer=False, is_writable=True),
+        AccountMeta(pubkey=get_associated_token_address(PublicKey(caller), NEON_TOKEN_MINT_ID), is_signer=False, is_writable=True),
         AccountMeta(pubkey=PublicKey(sysinstruct), is_signer=False, is_writable=False),
         AccountMeta(pubkey=evm_loader_id, is_signer=False, is_writable=False),
-        AccountMeta(pubkey=ETH_TOKEN_MINT_ID, is_signer=False, is_writable=False),
+        AccountMeta(pubkey=NEON_TOKEN_MINT_ID, is_signer=False, is_writable=False),
         # AccountMeta(pubkey=TOKEN_PROGRAM_ID, is_signer=False, is_writable=False),
         AccountMeta(pubkey=PublicKey(sysvarclock), is_signer=False, is_writable=False),
     ]
@@ -296,15 +296,15 @@ def mint_erc20_send(erc20_sol, erc20_code, account_eth, account_sol, acc, sum):
             data=trx_data,
             keys=[
                 AccountMeta(pubkey=erc20_sol, is_signer=False, is_writable=True),
-                AccountMeta(pubkey=get_associated_token_address(PublicKey(erc20_sol), ETH_TOKEN_MINT_ID),
+                AccountMeta(pubkey=get_associated_token_address(PublicKey(erc20_sol), NEON_TOKEN_MINT_ID),
                             is_signer=False, is_writable=True),
                 AccountMeta(pubkey=erc20_code, is_signer=False, is_writable=True),
                 AccountMeta(pubkey=acc.public_key(), is_signer=True, is_writable=False),
                 AccountMeta(pubkey=account_sol, is_signer=False, is_writable=True),
-                AccountMeta(pubkey=get_associated_token_address(PublicKey(account_sol), ETH_TOKEN_MINT_ID),
+                AccountMeta(pubkey=get_associated_token_address(PublicKey(account_sol), NEON_TOKEN_MINT_ID),
                             is_signer=False, is_writable=True),
                 AccountMeta(pubkey=evm_loader_id, is_signer=False, is_writable=False),
-                AccountMeta(pubkey=ETH_TOKEN_MINT_ID, is_signer=False, is_writable=False),
+                AccountMeta(pubkey=NEON_TOKEN_MINT_ID, is_signer=False, is_writable=False),
                 AccountMeta(pubkey=TOKEN_PROGRAM_ID, is_signer=False, is_writable=False),
                 AccountMeta(pubkey=PublicKey(sysvarclock), is_signer=False, is_writable=False)
             ]))

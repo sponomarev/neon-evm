@@ -13,7 +13,7 @@ solana_url = os.environ.get("SOLANA_URL", "http://localhost:8899")
 client = Client(solana_url)
 CONTRACTS_DIR = os.environ.get("CONTRACTS_DIR", "evm_loader/")
 evm_loader_id = os.environ.get("EVM_LOADER")
-ETH_TOKEN_MINT_ID: PublicKey = PublicKey(os.environ.get("ETH_TOKEN_MINT"))
+NEON_TOKEN_MINT_ID: PublicKey = PublicKey(os.environ.get("NEON_TOKEN_MINT"))
 
 
 def emulate(caller, contract, data, value):
@@ -53,20 +53,20 @@ class RW_Locking_Test(unittest.TestCase):
             tx = client.request_airdrop(wallet1.get_acc().public_key(), 1000000 * 10 ** 9, commitment=Confirmed)
             confirm_transaction(client, tx["result"])
 
-        # cls.token.transfer(ETH_TOKEN_MINT_ID, 201, get_associated_token_address(wallet1.get_acc().public_key(), ETH_TOKEN_MINT_ID))
-        # cls.token.mint(ETH_TOKEN_MINT_ID, get_associated_token_address(PublicKey(wallet1.get_acc().public_key()), ETH_TOKEN_MINT_ID), 10000)
+        # cls.token.transfer(NEON_TOKEN_MINT_ID, 201, get_associated_token_address(wallet1.get_acc().public_key(), NEON_TOKEN_MINT_ID))
+        # cls.token.mint(NEON_TOKEN_MINT_ID, get_associated_token_address(PublicKey(wallet1.get_acc().public_key()), NEON_TOKEN_MINT_ID), 10000)
 
 
         # Create ethereum account for user account
         cls.caller1_ether = eth_keys.PrivateKey(cls.acc1.secret_key()).public_key.to_canonical_address()
         (cls.caller1, cls.caller1_nonce) = cls.loader.ether2program(cls.caller1_ether)
-        cls.caller1_token = get_associated_token_address(PublicKey(cls.caller1), ETH_TOKEN_MINT_ID)
+        cls.caller1_token = get_associated_token_address(PublicKey(cls.caller1), NEON_TOKEN_MINT_ID)
 
         if getBalance(cls.caller1) == 0:
             print("Create.caller1 account...")
             _ = cls.loader.createEtherAccount(cls.caller1_ether)
             print("Done\n")
-        cls.token.transfer(ETH_TOKEN_MINT_ID, 201, get_associated_token_address(PublicKey(cls.caller1), ETH_TOKEN_MINT_ID))
+        cls.token.transfer(NEON_TOKEN_MINT_ID, 201, get_associated_token_address(PublicKey(cls.caller1), NEON_TOKEN_MINT_ID))
 
         print('Account1:', cls.acc1.public_key(), bytes(cls.acc1.public_key()).hex())
         print("Caller1:", cls.caller1_ether.hex(), cls.caller1_nonce, "->", cls.caller1,
@@ -96,8 +96,8 @@ class RW_Locking_Test(unittest.TestCase):
             tx = client.request_airdrop(wallet2.get_acc().public_key(), 1000000 * 10 ** 9, commitment=Confirmed)
             confirm_transaction(client, tx["result"])
 
-        # cls.wallet2_token = cls.token.create_token_account(ETH_TOKEN_MINT_ID, owner=wallet2.get_path())
-        # cls.token.mint(ETH_TOKEN_MINT_ID, get_associated_token_address(PublicKey(wallet2.get_acc().public_key()), ETH_TOKEN_MINT_ID), 10000)
+        # cls.wallet2_token = cls.token.create_token_account(NEON_TOKEN_MINT_ID, owner=wallet2.get_path())
+        # cls.token.mint(NEON_TOKEN_MINT_ID, get_associated_token_address(PublicKey(wallet2.get_acc().public_key()), NEON_TOKEN_MINT_ID), 10000)
 
 
         cls.caller2_ether = eth_keys.PrivateKey(cls.acc2.secret_key()).public_key.to_canonical_address()
@@ -108,7 +108,7 @@ class RW_Locking_Test(unittest.TestCase):
             _ = cls.loader.createEtherAccount(cls.caller2_ether)
             print("Done\n")
 
-        cls.token.transfer(ETH_TOKEN_MINT_ID, 201, get_associated_token_address(PublicKey(cls.caller2), ETH_TOKEN_MINT_ID))
+        cls.token.transfer(NEON_TOKEN_MINT_ID, 201, get_associated_token_address(PublicKey(cls.caller2), NEON_TOKEN_MINT_ID))
 
         print('Account2:', cls.acc2.public_key(), bytes(cls.acc2.public_key()).hex())
         print("Caller2:", cls.caller2_ether.hex(), cls.caller2_nonce, "->", cls.caller2,
@@ -338,7 +338,7 @@ class RW_Locking_Test(unittest.TestCase):
 
                 meta = [
                     AccountMeta(pubkey=PublicKey(info["account"]), is_signer=False, is_writable=True),
-                    AccountMeta(pubkey=get_associated_token_address(PublicKey(info["account"]), ETH_TOKEN_MINT_ID), is_signer=False, is_writable=True),
+                    AccountMeta(pubkey=get_associated_token_address(PublicKey(info["account"]), NEON_TOKEN_MINT_ID), is_signer=False, is_writable=True),
                     AccountMeta(pubkey=PublicKey(new_contract_code), is_signer=False, is_writable=True),
                        ]
                 print("new_contract_code", new_contract_code)
