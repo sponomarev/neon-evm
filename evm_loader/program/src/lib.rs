@@ -1,7 +1,11 @@
+//! # Neon EVM
+//!
+//! Neon EVM is an implementation of Ethereum Virtual Machine on Solana.
 #![deny(warnings)]
-#![deny(missing_docs)]
 #![deny(clippy::all, clippy::pedantic, clippy::nursery)]
-#![allow(clippy::module_name_repetitions)]
+#![allow(clippy::module_name_repetitions, clippy::missing_const_for_fn)]
+#![allow(missing_docs, clippy::missing_panics_doc, clippy::missing_errors_doc)]
+
 
 //! An ERC20-like Token program for the Solana blockchain
 #[macro_use]
