@@ -1,4 +1,5 @@
 //! Faucet ERC20 tokens module.
+#![allow(clippy::await_holding_lock)]
 
 use color_eyre::{eyre::eyre, Result};
 use derive_new::new;
