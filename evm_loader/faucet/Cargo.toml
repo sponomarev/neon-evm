@@ -13,7 +13,6 @@ eyre = "0.6.6"
 derive-new = "0.5.9"
 ed25519-dalek = "1.0.1"
 evm-loader = { path = "../program", default_features = false, features = ["no-entrypoint"] }
-eyre = "0.6"
 futures-locks = "0.7"
 hex = "0.4"
 lazy_static = "1.4"
