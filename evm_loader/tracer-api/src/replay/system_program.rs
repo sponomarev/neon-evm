@@ -1,0 +1,459 @@
+use log::*;
+use solana_sdk::{
+    account::{AccountSharedData, ReadableAccount, WritableAccount},
+    account_utils::StateMut,
+    feature_set, ic_msg,
+    instruction::InstructionError,
+    keyed_account::{from_keyed_account, get_signers, keyed_account_at_index, KeyedAccount},
+    nonce,
+    nonce_keyed_account::NonceKeyedAccount,
+    process_instruction::InvokeContext,
+    program_utils::limited_deserialize,
+    pubkey::Pubkey,
+    system_instruction::{SystemError, SystemInstruction, MAX_PERMITTED_DATA_LENGTH},
+    system_program,
+    sysvar::{self, recent_blockhashes::RecentBlockhashes, rent::Rent},
+};
+use std::collections::HashSet;
+
+// represents an address that may or may not have been generated
+//  from a seed
+#[derive(PartialEq, Default, Debug)]
+struct Address {
+    address: Pubkey,
+    base: Option<Pubkey>,
+}
+
+impl Address {
+    fn is_signer(&self, signers: &HashSet<Pubkey>) -> bool {
+        if let Some(base) = self.base {
+            signers.contains(&base)
+        } else {
+            signers.contains(&self.address)
+        }
+    }
+    fn create(
+        address: &Pubkey,
+        with_seed: Option<(&Pubkey, &str, &Pubkey)>,
+        invoke_context: &dyn InvokeContext,
+    ) -> Result<Self, InstructionError> {
+        let base = if let Some((base, seed, owner)) = with_seed {
+            let address_with_seed = Pubkey::create_with_seed(base, seed, owner)?;
+            // re-derive the address, must match the supplied address
+            if *address != address_with_seed {
+                ic_msg!(
+                    invoke_context,
+                    "Create: address {} does not match derived address {}",
+                    address,
+                    address_with_seed
+                );
+                return Err(SystemError::AddressWithSeedMismatch.into());
+            }
+            Some(*base)
+        } else {
+            None
+        };
+
+        Ok(Self {
+            address: *address,
+            base,
+        })
+    }
+}
+
+fn allocate(
+    account: &mut AccountSharedData,
+    address: &Address,
+    space: u64,
+    signers: &HashSet<Pubkey>,
+    invoke_context: &dyn InvokeContext,
+) -> Result<(), InstructionError> {
+    if !address.is_signer(signers) {
+        ic_msg!(
+            invoke_context,
+            "Allocate: 'to' account {:?} must sign",
+            address
+        );
+        return Err(InstructionError::MissingRequiredSignature);
+    }
+
+    // if it looks like the `to` account is already in use, bail
+    //   (note that the id check is also enforced by message_processor)
+    if !account.data().is_empty() || !system_program::check_id(account.owner()) {
+        ic_msg!(
+            invoke_context,
+            "Allocate: account {:?} already in use",
+            address
+        );
+        return Err(SystemError::AccountAlreadyInUse.into());
+    }
+
+    if space > MAX_PERMITTED_DATA_LENGTH {
+        ic_msg!(
+            invoke_context,
+            "Allocate: requested {}, max allowed {}",
+            space,
+            MAX_PERMITTED_DATA_LENGTH
+        );
+        return Err(SystemError::InvalidAccountDataLength.into());
+    }
+
+    account.set_data(vec![0; space as usize]);
+
+    Ok(())
+}
+
+fn assign(
+    account: &mut AccountSharedData,
+    address: &Address,
+    owner: &Pubkey,
+    signers: &HashSet<Pubkey>,
+    invoke_context: &dyn InvokeContext,
+) -> Result<(), InstructionError> {
+    // no work to do, just return
+    if account.owner() == owner {
+        return Ok(());
+    }
+
+    if !address.is_signer(signers) {
+        ic_msg!(invoke_context, "Assign: account {:?} must sign", address);
+        return Err(InstructionError::MissingRequiredSignature);
+    }
+
+    // bpf programs are allowed to do this; so this is inconsistent...
+    // Thus, we're starting to remove this restriction from system instruction
+    // processor for consistency and fewer special casing by piggybacking onto
+    // the related feature gate..
+    let rent_for_sysvars = invoke_context.is_feature_active(&feature_set::rent_for_sysvars::id());
+    if !rent_for_sysvars && sysvar::check_id(owner) {
+        // guard against sysvars being made
+        ic_msg!(invoke_context, "Assign: cannot assign to sysvar, {}", owner);
+        return Err(SystemError::InvalidProgramId.into());
+    }
+
+    account.set_owner(*owner);
+    Ok(())
+}
+
+fn allocate_and_assign(
+    to: &mut AccountSharedData,
+    to_address: &Address,
+    space: u64,
+    owner: &Pubkey,
+    signers: &HashSet<Pubkey>,
+    invoke_context: &dyn InvokeContext,
+) -> Result<(), InstructionError> {
+    allocate(to, to_address, space, signers, invoke_context)?;
+    assign(to, to_address, owner, signers, invoke_context)
+}
+
+#[allow(clippy::too_many_arguments)]
+fn create_account(
+    from: &KeyedAccount,
+    to: &KeyedAccount,
+    to_address: &Address,
+    lamports: u64,
+    space: u64,
+    owner: &Pubkey,
+    signers: &HashSet<Pubkey>,
+    invoke_context: &dyn InvokeContext,
+) -> Result<(), InstructionError> {
+    // if it looks like the `to` account is already in use, bail
+    {
+        let to = &mut to.try_account_ref_mut()?;
+        if to.lamports() > 0 {
+            ic_msg!(
+                invoke_context,
+                "Create Account: account {:?} already in use",
+                to_address
+            );
+            return Err(SystemError::AccountAlreadyInUse.into());
+        }
+
+        allocate_and_assign(to, to_address, space, owner, signers, invoke_context)?;
+    }
+    transfer(from, to, lamports, invoke_context)
+}
+
+fn transfer_verified(
+    from: &KeyedAccount,
+    to: &KeyedAccount,
+    lamports: u64,
+    invoke_context: &dyn InvokeContext,
+) -> Result<(), InstructionError> {
+    if !from.data_is_empty()? {
+        ic_msg!(invoke_context, "Transfer: `from` must not carry data");
+        return Err(InstructionError::InvalidArgument);
+    }
+    if lamports > from.lamports()? {
+        ic_msg!(
+            invoke_context,
+            "Transfer: insufficient lamports {}, need {}",
+            from.lamports()?,
+            lamports
+        );
+        return Err(SystemError::ResultWithNegativeLamports.into());
+    }
+
+    from.try_account_ref_mut()?.checked_sub_lamports(lamports)?;
+    to.try_account_ref_mut()?.checked_add_lamports(lamports)?;
+    Ok(())
+}
+
+fn transfer(
+    from: &KeyedAccount,
+    to: &KeyedAccount,
+    lamports: u64,
+    invoke_context: &dyn InvokeContext,
+) -> Result<(), InstructionError> {
+    if !invoke_context.is_feature_active(&feature_set::system_transfer_zero_check::id())
+        && lamports == 0
+    {
+        return Ok(());
+    }
+
+    if from.signer_key().is_none() {
+        ic_msg!(
+            invoke_context,
+            "Transfer: `from` account {} must sign",
+            from.unsigned_key()
+        );
+        return Err(InstructionError::MissingRequiredSignature);
+    }
+
+    transfer_verified(from, to, lamports, invoke_context)
+}
+
+fn transfer_with_seed(
+    from: &KeyedAccount,
+    from_base: &KeyedAccount,
+    from_seed: &str,
+    from_owner: &Pubkey,
+    to: &KeyedAccount,
+    lamports: u64,
+    invoke_context: &dyn InvokeContext,
+) -> Result<(), InstructionError> {
+    if !invoke_context.is_feature_active(&feature_set::system_transfer_zero_check::id())
+        && lamports == 0
+    {
+        return Ok(());
+    }
+
+    if from_base.signer_key().is_none() {
+        ic_msg!(
+            invoke_context,
+            "Transfer: 'from' account {:?} must sign",
+            from_base
+        );
+        return Err(InstructionError::MissingRequiredSignature);
+    }
+
+    let address_from_seed =
+        Pubkey::create_with_seed(from_base.unsigned_key(), from_seed, from_owner)?;
+    if *from.unsigned_key() != address_from_seed {
+        ic_msg!(
+            invoke_context,
+            "Transfer: 'from' address {} does not match derived address {}",
+            from.unsigned_key(),
+            address_from_seed
+        );
+        return Err(SystemError::AddressWithSeedMismatch.into());
+    }
+
+    transfer_verified(from, to, lamports, invoke_context)
+}
+
+pub fn process_instruction(
+    _owner: &Pubkey,
+    instruction_data: &[u8],
+    invoke_context: &mut dyn InvokeContext,
+) -> Result<(), InstructionError> {
+    let keyed_accounts = invoke_context.get_keyed_accounts()?;
+    let instruction = limited_deserialize(instruction_data)?;
+
+    trace!("process_instruction: {:?}", instruction);
+    trace!("keyed_accounts: {:?}", keyed_accounts);
+
+    let signers = get_signers(keyed_accounts);
+
+    match instruction {
+        SystemInstruction::CreateAccount {
+            lamports,
+            space,
+            owner,
+        } => {
+            let from = keyed_account_at_index(keyed_accounts, 0)?;
+            let to = keyed_account_at_index(keyed_accounts, 1)?;
+            let to_address = Address::create(to.unsigned_key(), None, invoke_context)?;
+            create_account(
+                from,
+                to,
+                &to_address,
+                lamports,
+                space,
+                &owner,
+                &signers,
+                invoke_context,
+            )
+        }
+        SystemInstruction::CreateAccountWithSeed {
+            base,
+            seed,
+            lamports,
+            space,
+            owner,
+        } => {
+            let from = keyed_account_at_index(keyed_accounts, 0)?;
+            let to = keyed_account_at_index(keyed_accounts, 1)?;
+            let to_address = Address::create(
+                to.unsigned_key(),
+                Some((&base, &seed, &owner)),
+                invoke_context,
+            )?;
+            create_account(
+                from,
+                to,
+                &to_address,
+                lamports,
+                space,
+                &owner,
+                &signers,
+                invoke_context,
+            )
+        }
+        SystemInstruction::Assign { owner } => {
+            let keyed_account = keyed_account_at_index(keyed_accounts, 0)?;
+            let mut account = keyed_account.try_account_ref_mut()?;
+            let address = Address::create(keyed_account.unsigned_key(), None, invoke_context)?;
+            assign(&mut account, &address, &owner, &signers, invoke_context)
+        }
+        SystemInstruction::Transfer { lamports } => {
+            let from = keyed_account_at_index(keyed_accounts, 0)?;
+            let to = keyed_account_at_index(keyed_accounts, 1)?;
+            transfer(from, to, lamports, invoke_context)
+        }
+        SystemInstruction::TransferWithSeed {
+            lamports,
+            from_seed,
+            from_owner,
+        } => {
+            let from = keyed_account_at_index(keyed_accounts, 0)?;
+            let base = keyed_account_at_index(keyed_accounts, 1)?;
+            let to = keyed_account_at_index(keyed_accounts, 2)?;
+            transfer_with_seed(
+                from,
+                base,
+                &from_seed,
+                &from_owner,
+                to,
+                lamports,
+                invoke_context,
+            )
+        }
+        SystemInstruction::AdvanceNonceAccount => {
+            let me = &mut keyed_account_at_index(keyed_accounts, 0)?;
+            me.advance_nonce_account(
+                &from_keyed_account::<RecentBlockhashes>(keyed_account_at_index(
+                    keyed_accounts,
+                    1,
+                )?)?,
+                &signers,
+                invoke_context,
+            )
+        }
+        SystemInstruction::WithdrawNonceAccount(lamports) => {
+            let me = &mut keyed_account_at_index(keyed_accounts, 0)?;
+            let to = &mut keyed_account_at_index(keyed_accounts, 1)?;
+            me.withdraw_nonce_account(
+                lamports,
+                to,
+                &from_keyed_account::<RecentBlockhashes>(keyed_account_at_index(
+                    keyed_accounts,
+                    2,
+                )?)?,
+                &from_keyed_account::<Rent>(keyed_account_at_index(keyed_accounts, 3)?)?,
+                &signers,
+                invoke_context,
+            )
+        }
+        SystemInstruction::InitializeNonceAccount(authorized) => {
+            let me = &mut keyed_account_at_index(keyed_accounts, 0)?;
+            me.initialize_nonce_account(
+                &authorized,
+                &from_keyed_account::<RecentBlockhashes>(keyed_account_at_index(
+                    keyed_accounts,
+                    1,
+                )?)?,
+                &from_keyed_account::<Rent>(keyed_account_at_index(keyed_accounts, 2)?)?,
+                invoke_context,
+            )
+        }
+        SystemInstruction::AuthorizeNonceAccount(nonce_authority) => {
+            let me = &mut keyed_account_at_index(keyed_accounts, 0)?;
+            me.authorize_nonce_account(&nonce_authority, &signers, invoke_context)
+        }
+        SystemInstruction::Allocate { space } => {
+            let keyed_account = keyed_account_at_index(keyed_accounts, 0)?;
+            let mut account = keyed_account.try_account_ref_mut()?;
+            let address = Address::create(keyed_account.unsigned_key(), None, invoke_context)?;
+            allocate(&mut account, &address, space, &signers, invoke_context)
+        }
+        SystemInstruction::AllocateWithSeed {
+            base,
+            seed,
+            space,
+            owner,
+        } => {
+            let keyed_account = keyed_account_at_index(keyed_accounts, 0)?;
+            let mut account = keyed_account.try_account_ref_mut()?;
+            let address = Address::create(
+                keyed_account.unsigned_key(),
+                Some((&base, &seed, &owner)),
+                invoke_context,
+            )?;
+            allocate_and_assign(
+                &mut account,
+                &address,
+                space,
+                &owner,
+                &signers,
+                invoke_context,
+            )
+        }
+        SystemInstruction::AssignWithSeed { base, seed, owner } => {
+            let keyed_account = keyed_account_at_index(keyed_accounts, 0)?;
+            let mut account = keyed_account.try_account_ref_mut()?;
+            let address = Address::create(
+                keyed_account.unsigned_key(),
+                Some((&base, &seed, &owner)),
+                invoke_context,
+            )?;
+            assign(&mut account, &address, &owner, &signers, invoke_context)
+        }
+    }
+}
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub enum SystemAccountKind {
+    System,
+    Nonce,
+}
+
+pub fn get_system_account_kind(account: &AccountSharedData) -> Option<SystemAccountKind> {
+    if system_program::check_id(account.owner()) {
+        if account.data().is_empty() {
+            Some(SystemAccountKind::System)
+        } else if account.data().len() == nonce::State::size() {
+            match account.state().ok()? {
+                nonce::state::Versions::Current(state) => match *state {
+                    nonce::State::Initialized(_) => Some(SystemAccountKind::Nonce),
+                    _ => None,
+                },
+            }
+        } else {
+            None
+        }
+    } else {
+        None
+    }
+}

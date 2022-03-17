@@ -1,0 +1,21 @@
+<yandex>
+  <!-- Docs: <https://clickhouse.tech/docs/en/operations/settings/settings_users/> -->
+  <users>
+    <tracer_api_user>
+      <profile>readonly</profile>
+      <networks>
+        <ip>::/0</ip>
+      </networks>
+      <password>qwerty</password>
+      <quota>default</quota>
+    </tracer_api_user>
+    <validator_user>
+      <profile>default</profile>
+      <networks>
+        <ip>::/0</ip>
+      </networks>
+      <password>qwerty</password>
+      <quota>default</quota>
+    </validator_user>
+  </users>
+</yandex>

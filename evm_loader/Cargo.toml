@@ -3,6 +3,7 @@ members = [
     'cli',
     'faucet',
     'program',
+    'tracer-api',
 ]
 exclude = [
     'rust-evm'

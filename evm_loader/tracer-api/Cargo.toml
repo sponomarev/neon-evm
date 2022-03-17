@@ -1,0 +1,72 @@
+[package]
+name = "neon-tracer"
+version = "0.1.0"
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+jsonrpsee = { version = "0.4", features = ["http-server", "macros"] }
+tokio = { version = "1", features = ["full"] }
+ethereum-types = "0.12"
+serde = { version = "1.0", features = ["derive", "rc"] }
+serde_repr = "0.1"
+rustc-hex = "2.1"
+log = "0.4"
+parity-bytes = "0.1"
+parity-crypto = { version = "0.9", features = [ "publickey" ] }
+structopt = "0.3"
+anyhow = "1.0"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing-log = "0.1"
+
+# local
+evm-loader = { path = "../program", default_features = false, features = ["tracing"] }
+evm = { path = "../rust-evm", version = "0.18.0", default_features = false, features = ["tracing"] }
+evm-runtime = { version = "0.18", path = "../rust-evm/runtime", default-features = false, features = ["tracing"] }
+
+# for ci
+#evm-loader = { git = "https://github.com/zubr-exchange/neon-evm", rev = "7468944", default_features = false, features = ["tracing"] }
+#evm = { git = "https://github.com/zubr-exchange/neon-evm", rev = "7468944",  default_features = false, features = ["tracing"] }
+#evm-runtime = { git = "https://github.com/zubr-exchange/neon-evm", rev = "7468944", default-features = false, features = ["tracing"] }
+
+solana-sdk = "=1.8.12"
+solana-client = "=1.8.12"
+solana-program = { version = "=1.8.12", default_features = false }
+solana-transaction-status = "=1.8.12"
+solana-runtime = "=1.8.12"
+solana-ledger = "=1.8.12"
+
+solana-config-program = "=1.8.12"
+solana-secp256k1-program = "=1.8.12"
+solana-stake-program = "=1.8.12"
+solana-vote-program = "=1.8.12"
+solana-bpf-loader-program = "=1.8.12"
+solana-program-test = "=1.8.12"
+bincode = "1.3.1"
+
+solana-account-decoder = "1.8.12"
+spl-token = { version = "3.2.0", default_features = false, features = ["no-entrypoint"] }
+spl-associated-token-account = { version = "1.0.2", default_features = false, features = ["no-entrypoint"] }
+bs58 = "0.4.0"
+hex = "0.4.2"
+sha3 = "0.8"
+arrayref = "0.3.6"
+serde_json = "1.0.66"
+rlp = "0.5"
+lazy_static = "1.4"
+itertools = "0.10"
+clickhouse = "0.8"
+thiserror = "1.0"
+secret-value = { version = "0.1.0", features = ["serde"] }
+
+libloading = "0.6.2"
+num-derive = { version = "0.3" }
+num-traits = { version = "0.2" }
+libc = "0.2.81"
+
+environmental = { version = "1", default-features = false }
+
+# for js tracing
+dukt = "0.1"

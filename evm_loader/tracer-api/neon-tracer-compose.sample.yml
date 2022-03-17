@@ -1,0 +1,8 @@
+version: "3.7"
+services:
+  neon-tracer:
+    network_mode: host
+    image: neon-tracer:latest
+    ports:
+      - "0.0.0.0:8250:8250"
+    command: neon-tracer -l 0.0.0.0:8250 -c $CLICKHOUSE_SERVER -d $CLICKHOUSE_DATABASE -u $CLICKHOUSE_USER -p $CLICKHOUSE_PASSWORD
