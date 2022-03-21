@@ -1,5 +1,5 @@
 use ethereum_types::Address;
-use evm::gasometer::{tracing as gas_tracing, Snapshot};
+// use evm::gasometer::{tracing as gas_tracing, Snapshot};
 use evm::{Capture, ExitReason, ExitSucceed, Memory, H160, H256, U256};
 use evm::{Opcode, Stack};
 use evm_loader::tracing as transaction_tracing;
@@ -54,11 +54,10 @@ impl Tracer {
             }
 
             impl_proxy!(Proxy, vm_tracing);
-            impl_proxy!(Proxy, gas_tracing);
             impl_proxy!(Proxy, transaction_tracing);
 
             transaction_tracing::using(&mut Proxy, || {
-                gas_tracing::using(&mut Proxy, || vm_tracing::using(&mut Proxy, || f()))
+                vm_tracing::using(&mut Proxy, || f())
             })
         })
     }
@@ -133,45 +132,45 @@ impl vm_tracing::EventListener for Tracer {
     }
 }
 
-// TODO: Make this a method of `Event`
-fn get_snapshot_from_event(event: &gas_tracing::Event) -> Snapshot {
-    use gas_tracing::Event::*;
+// // TODO: Make this a method of `Event`
+// fn get_snapshot_from_event(event: &gas_tracing::Event) -> Snapshot {
+//     use gas_tracing::Event::*;
+//
+//     let snapshot = match event {
+//         RecordCost { snapshot, .. } => snapshot,
+//         RecordRefund { snapshot, .. } => snapshot,
+//         RecordStipend { snapshot, .. } => snapshot,
+//         RecordDynamicCost { snapshot, .. } => snapshot,
+//         RecordTransaction { snapshot, .. } => snapshot,
+//     };
+//     *snapshot
+// }
 
-    let snapshot = match event {
-        RecordCost { snapshot, .. } => snapshot,
-        RecordRefund { snapshot, .. } => snapshot,
-        RecordStipend { snapshot, .. } => snapshot,
-        RecordDynamicCost { snapshot, .. } => snapshot,
-        RecordTransaction { snapshot, .. } => snapshot,
-    };
-    *snapshot
-}
-
-impl gas_tracing::EventListener for Tracer {
-    fn event(&mut self, ev: gas_tracing::Event) {
-        debug!("gas event: {:?}", ev);
-        use gas_tracing::Event::*;
-
-        let snapshot = get_snapshot_from_event(&ev);
-        self.tracer.set_snapshot(snapshot);
-
-        match ev {
-            RecordCost { cost, snapshot } => {
-                self.vm.gas(cost, snapshot.gas());
-            }
-            RecordDynamicCost {
-                gas_cost,
-                memory_gas: _,
-                snapshot,
-                ..
-            } => {
-                // TODO: figure out wtf is memory gas and how to handle it properly
-                self.vm.gas(gas_cost, snapshot.gas())
-            }
-            _ => {}
-        }
-    }
-}
+// impl gas_tracing::EventListener for Tracer {
+//     fn event(&mut self, ev: gas_tracing::Event) {
+//         debug!("gas event: {:?}", ev);
+//         use gas_tracing::Event::*;
+//
+//         let snapshot = get_snapshot_from_event(&ev);
+//         self.tracer.set_snapshot(snapshot);
+//
+//         match ev {
+//             RecordCost { cost, snapshot } => {
+//                 self.vm.gas(cost, snapshot.gas());
+//             }
+//             RecordDynamicCost {
+//                 gas_cost,
+//                 memory_gas: _,
+//                 snapshot,
+//                 ..
+//             } => {
+//                 // TODO: figure out wtf is memory gas and how to handle it properly
+//                 self.vm.gas(gas_cost, snapshot.gas())
+//             }
+//             _ => {}
+//         }
+//     }
+// }
 
 impl transaction_tracing::EventListener for Tracer {
     fn event(&mut self, ev: transaction_tracing::Event) {

@@ -1,15 +1,14 @@
+use std::convert::TryInto;
 use std::collections::HashMap;
 use std::{borrow::BorrowMut, cell::RefCell, rc::Rc};
 
 use tracing::warn;
 
 use evm::backend::Apply;
-use evm::{H160, U256};
+use evm::{H160, H256, U256};
 use evm_loader::{
     account::{EthereumAccount, EthereumContract, ACCOUNT_SEED_VERSION},
-    executor_state::{ERC20Approve, SplApprove, SplTransfer},
-    solana_backend::{AccountStorage, AccountStorageInfo},
-    solidity_account::SolidityAccount,
+    // executor_state::{ERC20Approve, SplApprove, SplTransfer},
 };
 
 use evm_loader::account::tag;
@@ -18,10 +17,11 @@ use solana_program::instruction::AccountMeta;
 use solana_sdk::{account::Account, pubkey::Pubkey};
 
 use super::provider::Provider;
-use crate::neon::{Config, EvmAccount};
+use crate::neon::{Config, EvmAccount, evm_loader};
 use crate::utils::parse_token_amount;
 use solana_sdk::account_info::AccountInfo;
 use std::collections::{BTreeMap, BTreeSet};
+use super::tools::fetch_account_info;
 
 pub fn make_solana_program_address(ether_address: &H160, program_id: &Pubkey) -> (Pubkey, u8) {
     Pubkey::find_program_address(
@@ -30,28 +30,6 @@ pub fn make_solana_program_address(ether_address: &H160, program_id: &Pubkey) ->
     )
 }
 
-struct SolanaAccount {
-    account: Account,
-    code_account: Option<Account>,
-    key: Pubkey,
-    writable: bool,
-    code_size: Option<usize>,
-    balance: u64,
-}
-
-impl SolanaAccount {
-    pub fn new(account: Account, key: Pubkey, balance: u64, code_account: Option<Account>) -> Self {
-        eprintln!("SolanaAccount::new");
-        Self {
-            account,
-            key,
-            balance,
-            writable: false,
-            code_account,
-            code_size: None,
-        }
-    }
-}
 
 macro_rules! bail_with_default {
     ($opt:expr, $fun:expr) => {
@@ -113,54 +91,32 @@ impl<'a, P: Provider> EmulatorAccountStorage<'a, P> {
         }
     }
 
-    pub fn fetch_account(&self, pubkey: &Pubkey, slot: u64) -> Option<Account> {
-        self.provider.get_account_at_slot(pubkey, slot).ok()? // TODO: warning
-    }
 
     fn init_neon_account(&mut self, address: H160) {
-
-        macro_rules! return_none {
-            ($opt:expr) => {
-                bail_with_default!($opt, || ())
-            };
-        }
-
+        // macro_rules! return_none {
+        //     ($opt:expr) => {
+        //         bail_with_default!($opt, || ())
+        //     };
+        // }
         if !self.ethereum_accounts.contains_key(&address) {
             let program_id = self.provider.evm_loader();
 
-            let (sol, _) =
-                make_solana_program_address(&address, self.provider.evm_loader());
-
             // Note: CLI logic will add the address to new_accounts map.
             // Note: In our case we always work with created accounts.
-            // TODO:  remove macro?
-            let acc = return_none!(self.fetch_account(&sol, self.block_number));
-
-            if acc.owner != program_id{
-                return
-            }
-
-            let info = AccountInfo::from(&acc);
-
-            match tag(program_id, &info){
-                Ok(EthereumAccount::TAG) => {}
-                Ok(_) | Err(_) => return
-            }
-
-            let ether_account = EthereumAccount::from_account(program_id, &info)?;
+            let info = fetch_account_info(&address, &self.provider, self.block_number)?;
+            // TODO: catch error?
+            let ether_account = EthereumAccount::from_account(provider.evm_loader(), &info).unwrap();
 
             let evm_account = if let Some(code_key) = ether_account.code_account {
-                let acc = self.fetch_account(&code_key, self.block_number).
-                    unwrap_or_else(
-                        warn!(
-                            neon_account_key = %solana_address,
-                            code_account_key = %account_data.code_account,
+                let acc = provider.get_account_at_slot(&code_key, self.block_number).
+                    unwrap_or_else(warn!(
+                            neon_account_key = %sol,
+                            code_account_key = %code_key,
                             "code account not found"
-                        )
-                    );
-                let ether_contract = EthereumConrtact::from_account(program_id, &acc);
-                EvmAccount::Contract(ether_account, ether_contract)
+                        ))?;
 
+                let ether_contract = EthereumConrtact::from_account(program_id, &acc).unwrap();
+                EvmAccount::Contract(ether_account, ether_contract)
             }
             else{
                 EvmAccount::User(ether_account)
@@ -176,8 +132,8 @@ impl<'a, P: Provider> EmulatorAccountStorage<'a, P> {
         self.init_neon_account(*address);
 
         match self.ethereum_accounts.get(address)? {
-            Account::User(ref account) => Some(account),
-            Account::Contract(ref account, _) => Some(account),
+            EvmAccount::User(ref account) => Some(account),
+            EvmAccount::Contract(ref account, _) => Some(account),
         }
     }
 
@@ -185,8 +141,8 @@ impl<'a, P: Provider> EmulatorAccountStorage<'a, P> {
         self.init_neon_account(*address);
 
         match self.ethereum_accounts.get(address)? {
-            Account::User(_) => None,
-            Account::Contract(_, ref contract) => Some(contract),
+            EvmAccount::User(_) => None,
+            EvmAccount::Contract(_, ref contract) => Some(contract),
         }
     }
 
@@ -275,12 +231,61 @@ impl<'a, P: Provider> AccountStorage for EmulatorAccountStorage<'a, P> {
             .map_or_else(Vec::new, |code| code.to_vec())
     }
 
+    fn code_hash(&mut self, address: &H160) -> H256 {
+        self.ethereum_contract(address)
+            .map(|c| &*c.extension.code)
+            .map_or_else(H256::zero, crate::utils::keccak256_h256)
+    }
+
+    fn code_size(&mut self, address: &H160) -> usize {
+        self.ethereum_contract(address)
+            .map_or(0_u32, |c| c.code_size)
+            .try_into()
+            .expect("usize is 8 bytes")
+    }
+
+    fn exists(&mut self, address: &H160) -> bool {
+        self.ethereum_accounts.contains_key(address)
+    }
+
+
+    fn get_erc20_allowance(&self, owner: &H160, spender: &H160, contract: &H160, mint: &Pubkey) -> U256 {
+        let (sol, _) = self.get_erc20_allowance_address(owner, spender, contract, mint);
+
+        let acc = self.provider.get_account_at_slot(&sol, block_number)?;
+            // unwrap_or_else(anyhow::bail!("account not found"))?;
+
+        info = AccountInfo::from(&acc);
+        ERC20Allowance::from_account(self.program_id, info)
+            .map_or_else(|_| U256::zero(), |a| a.value)
+    }
+
+    fn query_account(&self, address: &Pubkey, data_offset: usize, data_len: usize) -> Option<evm_loader::query::Value> {
+        let account = self.solana_accounts[address];
+        if account.owner == self.program_id { // NeonEVM accounts may be already borrowed
+            return None;
+        }
+
+        Some(evm_loader::query::Value {
+            owner: *account.owner,
+            length: account.data_len(),
+            lamports: account.lamports(),
+            executable: account.executable,
+            rent_epoch: account.rent_epoch,
+            offset: data_offset,
+            data: evm_loader::query::clone_chunk(&account.data.borrow(), data_offset, data_len),
+        })
+    }
+
+
+
     fn storage(&mut self, address: &H160, index: &U256) -> U256 {
         self.ethereum_contract(address)
             .map(|c| &c.extension.storage)
             .and_then(|hamt| hamt.find(*index))
             .unwrap_or_else(U256::zero)
     }
+
 
 }
 

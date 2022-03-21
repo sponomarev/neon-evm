@@ -2,6 +2,7 @@ mod account_storage;
 mod diff;
 pub mod provider;
 mod tracer;
+pub mod tools;
 
 use std::borrow::Borrow;
 use std::collections::{BTreeMap, HashMap, HashSet};
@@ -15,16 +16,13 @@ use tracing::{debug, info, warn};
 use evm::backend::Apply;
 use evm::{ExitReason, Transfer, H160, H256, U256};
 use evm_loader::instruction::EvmInstruction;
-use evm_loader::UnsignedTransaction;
+use evm_loader::transaction::UnsignedTransaction;
 use evm_loader::{
-    account_data::AccountData,
-    config::token_mint,
     executor::Machine,
     executor_state::{ExecutorState, ExecutorSubstate},
-    solana_backend::AccountStorage,
 };
 
-use evm_loader::{EthereumAccount, EthereumContract};
+use evm_loader::account::{EthereumAccount, EthereumContract};
 
 //use solana_client::rpc_client::RpcClient;
 use solana_program::keccak::hash;
@@ -41,12 +39,14 @@ use account_storage::{make_solana_program_address, EmulatorAccountStorage};
 use diff::prepare_state_diff;
 use provider::{DbProvider, MapProvider, Provider};
 use tracer::Tracer;
+use crate::tools::{fetch_ether_account};
 
 pub enum EvmAccount<'a> {
     User(EthereumAccount<'a>),
     Contract(EthereumAccount<'a>, EthereumContract<'a>),
 }
 
+use solana_sdk::account_info::AccountInfo;
 
 pub trait To<T> {
     fn to(self) -> T;
@@ -332,12 +332,17 @@ where
         None => {
             let (solana_address, _nonce) =
                 make_solana_program_address(&caller_id, &provider.evm_loader());
-            let trx_count = get_ether_account_nonce(
-                &provider,
-                &solana_address,
-                block_number.unwrap_or(u64::MAX),
-            )?;
-            let trx_count = trx_count.0;
+
+            let trx_count=   match provider.get_account_at_slot(caller_sol, slot)? {
+                Some(acc) => {
+                    let info = AccountInfo::from(&acc);
+                    let ether_account = EthereumAccount::from_account(provider.evm_loader(), &info)
+                        .unwrap_or_else(u64::default());
+                    ether_account.trx_count
+                },
+                None => u64::default(),
+            };
+
             let program_id = get_program_ether(&caller_id, trx_count);
             debug!("program_id to deploy: {:?}", program_id);
             EmulatorAccountStorage::new(provider, program_id, caller_id, block_number)
@@ -498,37 +503,29 @@ pub fn command_trace_raw(
     )
 }
 
-fn get_ether_account_nonce<P: Provider>(
-    provider: &P,
-    caller_sol: &Pubkey,
-    slot: u64,
-) -> Result<(u64, H160, Pubkey), Error> {
-    let data: Vec<u8>;
-    match provider.get_account_at_slot(caller_sol, slot)? {
-        Some(acc) => data = acc.data,
-        None => return Ok((u64::default(), H160::default(), Pubkey::default())),
-    }
 
-    let trx_count: u64;
-    debug!("get_ether_account_nonce data = {:?}", data);
-    let account = match evm_loader::account_data::AccountData::unpack(&data) {
-        Ok(acc_data) => match acc_data {
-            AccountData::Account(acc) => acc,
-            _ => anyhow::bail!("Caller has incorrect type"),
-        },
-        Err(_) => anyhow::bail!("Caller unpack error"),
-    };
-    trx_count = account.trx_count;
-    let caller_ether = account.ether;
-    let caller_token =
-        spl_associated_token_account::get_associated_token_address(caller_sol, &token_mint::id());
-
-    debug!("Caller: ether {}, solana {}", caller_ether, caller_sol);
-    debug!("Caller trx_count: {} ", trx_count);
-    debug!("caller_token = {}", caller_token);
-
-    Ok((trx_count, caller_ether, caller_token))
-}
+// fn get_ether_account_nonce<P: Provider>(
+//     provider: &P,
+//     caller_sol: &Pubkey,
+//     slot: u64,
+// ) -> Result<(u64, H160, Pubkey), Error> {
+//     // let data: Vec<u8>;
+//     let info=   match provider.get_account_at_slot(caller_sol, slot)? {
+//         Some(acc) => AccountInfo::from(&acc),
+//         None => return Ok((u64::default(), H160::default(), Pubkey::default())),
+//     };
+//
+//     let ether_account = EthereumAccount::from_account(provider.evm_loader(), &info)
+//         .unwrap_or_else(
+//             // anyhow::bail!("Caller has incorrect type")
+//         );
+//
+//     debug!("Caller: ether {}, solana {}", ether_account.ether, ether_account.info.key);
+//     debug!("Caller trx_count: {} ", ether_account.trx_count);
+//     debug!("caller_token = {}", ether_account.eth_token_account);
+//
+//     Ok((ether_account.trx_count, ether_account.ether, ether_account.eth_token_account))
+// }
 
 fn get_program_ether(caller_ether: &H160, trx_count: u64) -> H160 {
     let trx_count_256: U256 = U256::from(trx_count);
@@ -542,3 +539,5 @@ fn get_program_ether(caller_ether: &H160, trx_count: u64) -> H160 {
 pub fn keccak256_h256(data: &[u8]) -> H256 {
     H256::from(hash(data).to_bytes())
 }
+
+
