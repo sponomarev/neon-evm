@@ -7,8 +7,9 @@ use tracing::warn;
 use evm::backend::Apply;
 use evm::{H160, H256, U256};
 use evm_loader::{
-    account::{EthereumAccount, EthereumContract, ACCOUNT_SEED_VERSION},
-    // executor_state::{ERC20Approve, SplApprove, SplTransfer},
+    account_storage::{AccountStorage},
+    account::{ACCOUNT_SEED_VERSION, EthereumAccount, EthereumContract, ERC20Allowance, token},
+    executor_state::{ERC20Approve, SplApprove, SplTransfer},
 };
 
 use evm_loader::account::tag;
@@ -17,11 +18,12 @@ use solana_program::instruction::AccountMeta;
 use solana_sdk::{account::Account, pubkey::Pubkey};
 
 use super::provider::Provider;
-use crate::neon::{Config, EvmAccount, evm_loader};
+use crate::neon::{Config, EvmAccount};
 use crate::utils::parse_token_amount;
 use solana_sdk::account_info::AccountInfo;
 use std::collections::{BTreeMap, BTreeSet};
-use crate::neon::{Error};
+use crate::neon::{Error, account_info};
+
 
 pub fn make_solana_program_address(ether_address: &H160, program_id: &Pubkey) -> (Pubkey, u8) {
     Pubkey::find_program_address(
@@ -109,39 +111,49 @@ impl<'a, P: Provider> EmulatorAccountStorage<P> {
         if !ether_accounts.contains_key(address) {
 
             let (key, _) = Pubkey::find_program_address(&[&[ACCOUNT_SEED_VERSION], address.as_bytes()],  self.provider.evm_loader());
-            let solana = self.provider.get_account_at_slot(&key, self.block_number)
-                .unwrap_or_else(||{
-                    warn!("error to get_account_at_slot: {}", sol);
-                    None
-                }).unwrap_or_else(||{
+            let solana = match self.provider.get_account_at_slot(&key, self.block_number){
+                Ok(acc) => acc,
+                Err(_) => {
+                    warn!("error to get_account_at_slot: {}", key);
+                    return false
+                }
+            };
+
+            if solana.is_none(){
                 warn!("account not found: {}", key);
                 return false
-            });
+            }
+            let mut solana = solana.unwrap();
+            let info = account_info(&key, &mut solana);
 
-            let info = AccountInfo::from(&solana);
-
-            let ether_account = EthereumAccount::from_account(self.provider.evm_loader(), &info)
-                .unwrap_or_else(||{
+            let ether_account = match EthereumAccount::from_account(self.provider.evm_loader(), &info){
+                Ok(acc) => acc,
+                Err(e) => {
                     warn!("EthereumAccount::from_account() error: {}", key);
                     return false;
-                });
+                }
+            };
 
             let code_account = if let Some(code_key) = ether_account.code_account {
-                let acc = self.provider.get_account_at_slot(&code_key, self.block_number)
-                    .unwrap_or_else(||{
+                let acc = match self.provider.get_account_at_slot(&code_key, self.block_number){
+                    Ok(a) => a,
+                    Err(_) => {
                         warn!("error to get_account_at_slot: {}", code_key);
-                        None
-                    }).unwrap_or_else(||{
+                        return false
+                    }
+                };
+
+                if acc.is_none(){
                     warn!("account not found: {}", code_key);
                     return false
-                });
-                Some(acc)
+                }
+                acc
             }
             else{
                 None
             };
 
-            ethereum_accounts.insert(*address, SolanaAccount{account: solana, code_account: code_account, key: key});
+            ether_accounts.insert(*address, SolanaAccount{account: solana, code_account: code_account, key: key});
             return true
         }
         true
@@ -151,14 +163,14 @@ impl<'a, P: Provider> EmulatorAccountStorage<P> {
     fn create_sol_acc_if_not_exists(&self, key: &Pubkey) ->bool{
         let mut solana_accounts = self.solana_accounts.borrow_mut();
 
-        if !solana_accounts.contains_key(token_account) {
-            let acc = self.provider.get_account_at_slot(token_account, self.block_number).unwrap_or(None);
+        if !solana_accounts.contains_key(key) {
+            let acc = self.provider.get_account_at_slot(key, self.block_number).unwrap_or(None);
             if let Some(account) = acc {
-                solana_accounts.insert(*token_account, account);
-                true
+                solana_accounts.insert(*key, account);
+                return true;
             }
             else {
-                false
+                return false;
             }
         }
 
@@ -172,10 +184,11 @@ impl<'a, P: Provider> EmulatorAccountStorage<P> {
     {
         self.create_acc_if_not_exists(address);
 
-        let accounts = self.ethereum_accounts.borrow();
+        let mut accounts = self.ethereum_accounts.borrow_mut();
 
         if let Some( solana) = accounts.get(address) {
-            let info = AccountInfo::from(&solana.account);
+            let  mut account = &solana.account;
+            let info =account_info(&solana.key, &mut account);
 
             let ethereum_account = EthereumAccount::from_account(self.provider.evm_loader(), &info).unwrap();
             f(&ethereum_account)
@@ -190,12 +203,13 @@ impl<'a, P: Provider> EmulatorAccountStorage<P> {
     {
         self.create_acc_if_not_exists(address);
 
-        let accounts = self.ethereum_accounts.borrow();
+        let mut accounts = self.ethereum_accounts.borrow_mut();
 
         if let Some(solana) = accounts.get(address) {
 
             if let Some(ref code_acc) = solana.code_account {
-                let info = AccountInfo::from(code_acc);
+                let  mut account = &solana.account;
+                let info =account_info(&solana.key, &mut account);
                 let ethereum_contract = EthereumContract::from_account(self.provider.evm_loader(), &info).unwrap();
 
                 f(&ethereum_contract)
@@ -255,19 +269,20 @@ impl<P: Provider> AccountStorage for EmulatorAccountStorage<P> {
 
         self.create_acc_if_not_exists(address);
 
-        let accounts = self.accounts.borrow();
+        let accounts = self.ethereum_accounts.borrow();
         accounts.contains_key(address)
     }
 
 
     fn get_spl_token_balance(&self, token_account: &Pubkey) -> u64 {
 
-        create_sol_acc_if_not_exists(token_account);
+        self.create_sol_acc_if_not_exists(token_account);
 
-        let solana_accounts = self.solana_accounts.borrow();
+        let mut solana_accounts = self.solana_accounts.borrow_mut();
 
-        if let Some(account) = solana_accounts.get(token_account) {
-            info = AccountInfo::from(account);
+        if let Some(mut account) = solana_accounts.get(token_account) {
+
+            let info = account_info(&token_account, &mut account);
             token::State::from_account(&info).map_or(0_u64, |a| a.amount)
         }
         else{
@@ -276,12 +291,12 @@ impl<P: Provider> AccountStorage for EmulatorAccountStorage<P> {
     }
 
     fn get_spl_token_supply(&self, token_mint: &Pubkey) -> u64 {
-        create_sol_acc_if_not_exists(token_mint);
+        self.create_sol_acc_if_not_exists(token_mint);
 
-        let solana_accounts = self.solana_accounts.borrow();
+        let mut solana_accounts = self.solana_accounts.borrow_mut();
 
-        if let Some(account) = solana_accounts.get(token_account) {
-            info = AccountInfo::from(account);
+        if let Some(mut account) = solana_accounts.get(token_mint) {
+            let info = account_info(&token_mint, &mut account);
             token::Mint::from_account(&info).map_or(0_u64, |a| a.supply)
         }
         else{
@@ -290,12 +305,12 @@ impl<P: Provider> AccountStorage for EmulatorAccountStorage<P> {
     }
 
     fn get_spl_token_decimals(&self, token_mint: &Pubkey) -> u8 {
-        create_sol_acc_if_not_exists(token_mint);
+        self.create_sol_acc_if_not_exists(token_mint);
 
-        let solana_accounts = self.solana_accounts.borrow();
+        let mut solana_accounts = self.solana_accounts.borrow_mut();
 
-        if let Some(account) = solana_accounts.get(token_account) {
-            info = AccountInfo::from(account);
+        if let Some(mut account) = solana_accounts.get(token_mint) {
+            let info = account_info(&token_mint, &mut account);
             token::Mint::from_account(&info).map_or(0_u8, |a| a.decimals)
         }
         else{
@@ -306,12 +321,12 @@ impl<P: Provider> AccountStorage for EmulatorAccountStorage<P> {
 
     fn get_erc20_allowance(&self, owner: &H160, spender: &H160, contract: &H160, mint: &Pubkey) -> U256 {
         let (sol, _) = self.get_erc20_allowance_address(owner, spender, contract, mint);
-        create_sol_acc_if_not_exists(sol);
+        self.create_sol_acc_if_not_exists(&sol);
 
-        let solana_accounts = self.solana_accounts.borrow();
+        let mut solana_accounts = self.solana_accounts.borrow_mut();
 
-        if let Some(account) = solana_accounts.get(token_account) {
-            info = AccountInfo::from(account);
+        if let Some(mut account) = solana_accounts.get(&sol) {
+            let info = account_info(&sol, &mut account);
             ERC20Allowance::from_account(self.provider.evm_loader(), &info)
                 .map_or_else(|_| U256::zero(), |a| a.value)
         }
@@ -321,15 +336,15 @@ impl<P: Provider> AccountStorage for EmulatorAccountStorage<P> {
     }
 
     fn query_account(&self, key: &Pubkey, data_offset: usize, data_len: usize) -> Option<evm_loader::query::Value> {
-        create_sol_acc_if_not_exists(key);
+        self.create_sol_acc_if_not_exists(key);
 
-        if let Some(account) = solana_accounts.get(token_account) {
+        let mut solana_accounts = self.solana_accounts.borrow_mut();
 
-            if account.owner == self.provider.evm_loader() { // NeonEVM accounts may be already borrowed
+        if let Some(mut account) = solana_accounts.get(key) {
+            if account.owner == *self.provider.evm_loader() { // NeonEVM accounts may be already borrowed
                 return None;
             }
-
-            info = AccountInfo::from(account);
+            let info = account_info(&key, &mut account);
             Some(evm_loader::query::Value {
                 owner: *info.owner,
                 length: info.data_len(),
@@ -346,7 +361,7 @@ impl<P: Provider> AccountStorage for EmulatorAccountStorage<P> {
     }
 
 
-    fn solana_accounts_space(&mut self, address: &H160) -> (usize, usize) {
+    fn solana_accounts_space(&self, address: &H160) -> (usize, usize) {
         let account_space = {
             self.ethereum_account_map_or(address, 0, |a| a.info.data_len())
         };
@@ -365,11 +380,18 @@ impl<P: Provider> AccountStorage for EmulatorAccountStorage<P> {
         (account_space, contract_space)
     }
 
-    fn storage(&mut self, address: &H160, index: &U256) -> U256 {
+    fn storage(&self, address: &H160, index: &U256) -> U256 {
         self.ethereum_contract_map_or(address,
                                       None,
                                       |c| c.extension.storage.find(*index)
         ).unwrap_or_else(U256::zero)
+    }
+
+    fn valids(&self, address: &H160) -> Vec<u8> {
+        self.ethereum_contract_map_or(address,
+                                      Vec::new(),
+                                      |c| c.extension.valids.to_vec()
+        )
     }
 
 

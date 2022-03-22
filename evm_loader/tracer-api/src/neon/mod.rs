@@ -27,7 +27,6 @@ use evm_loader::account::{EthereumAccount, EthereumContract};
 //use solana_client::rpc_client::RpcClient;
 use solana_program::keccak::hash;
 use solana_sdk::message::Message as SolanaMessage;
-use solana_sdk::pubkey::Pubkey;
 
 use crate::db::DbClient as RpcClient;
 use crate::types::ec::pod_account::{diff_pod, PodAccount};
@@ -39,7 +38,8 @@ use account_storage::{make_solana_program_address, EmulatorAccountStorage};
 use diff::prepare_state_diff;
 use provider::{DbProvider, MapProvider, Provider};
 use tracer::Tracer;
-use crate::tools::{fetch_ether_account};
+use solana_sdk::{account::Account, pubkey::Pubkey};
+use std::{borrow::BorrowMut, cell::RefCell, rc::Rc};
 
 pub enum EvmAccount<'a> {
     User(EthereumAccount<'a>),
@@ -330,12 +330,13 @@ where
             EmulatorAccountStorage::new(provider, *program_id, caller_id, block_number)
         }
         None => {
-            let (solana_address, _nonce) =
+            let (caller_sol, _nonce) =
                 make_solana_program_address(&caller_id, &provider.evm_loader());
 
-            let trx_count=   match provider.get_account_at_slot(caller_sol, slot)? {
-                Some(acc) => {
-                    let info = AccountInfo::from(&acc);
+            let trx_count=   match provider.get_account_at_slot(&caller_sol, block_number?)? {
+                Some(mut acc) => {
+                    let info = account_info(&caller_sol, &mut acc);
+                    // let info = AccountInfo::from(&acc);
                     let ether_account = EthereumAccount::from_account(provider.evm_loader(), &info)
                         .unwrap_or_else(u64::default());
                     ether_account.trx_count
@@ -540,4 +541,17 @@ pub fn keccak256_h256(data: &[u8]) -> H256 {
     H256::from(hash(data).to_bytes())
 }
 
+/// Creates new instance of `AccountInfo` from `Account`.
+pub fn account_info<'a>(key: &'a Pubkey, account: &'a mut Account) -> AccountInfo<'a> {
+    AccountInfo {
+        key,
+        is_signer: false,
+        is_writable: false,
+        lamports: Rc::new(RefCell::new(&mut account.lamports)),
+        data: Rc::new(RefCell::new(&mut account.data)),
+        owner: &account.owner,
+        executable: account.executable,
+        rent_epoch: account.rent_epoch,
+    }
+}
 
