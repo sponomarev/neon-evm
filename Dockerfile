@@ -1,5 +1,5 @@
 # Install BPF SDK
-FROM solanalabs/rust:latest AS builder
+FROM solanalabs/rust:1.52.0 AS builder
 RUN rustup toolchain install nightly
 RUN rustup component add clippy --toolchain nightly
 WORKDIR /opt
