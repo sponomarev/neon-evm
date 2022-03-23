@@ -17,7 +17,9 @@
 //! Account system expressed in Plain Old Data.
 
 use crate::types::Bytes;
-use ethereum_types::{H256, U256};
+// use ethereum_types::{H256, U256};
+use evm::{H160, H256, U256};
+
 //use itertools::Itertools;
 use crate::types::ec::account_diff::*;
 use itertools::Itertools;

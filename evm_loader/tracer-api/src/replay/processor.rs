@@ -470,11 +470,17 @@ impl<'a> InvokeContext for LightIC<'a> {
         Rc::new(RefCell::new(Dummy))
     }
 
+    fn get_bpf_compute_budget(&self) -> &BpfComputeBudget {
+        &self.compute_budget
+    }
+
     fn get_compute_meter(&self) -> Rc<RefCell<dyn ComputeMeter>> {
         Rc::new(RefCell::new(Dummy))
     }
 
     fn add_executor(&self, pubkey: &Pubkey, executor: Arc<dyn Executor>) {}
+
+    fn update_executor(&self, pubkey: &Pubkey, executor: Arc<dyn Executor>)  {}
 
     fn get_executor(&self, pubkey: &Pubkey) -> Option<Arc<dyn Executor>> {
         None
@@ -503,7 +509,8 @@ impl<'a> InvokeContext for LightIC<'a> {
             .map(|acc| Rc::new(acc.data.clone()))
     }
 
-    fn get_bpf_compute_budget(&self) -> &BpfComputeBudget {
-        &self.compute_budget
-    }
+    fn set_return_data(&mut self, return_data: Option<(Pubkey, Vec<u8>)>) {}
+
+    fn get_return_data(&self) -> &Option<(Pubkey, Vec<u8>)> {}
+
 }

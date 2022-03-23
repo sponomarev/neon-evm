@@ -25,14 +25,6 @@ use std::collections::{BTreeMap, BTreeSet};
 use crate::neon::{Error, account_info};
 
 
-pub fn make_solana_program_address(ether_address: &H160, program_id: &Pubkey) -> (Pubkey, u8) {
-    Pubkey::find_program_address(
-        &[&[ACCOUNT_SEED_VERSION], ether_address.as_bytes()],
-        program_id,
-    )
-}
-
-
 macro_rules! bail_with_default {
     ($opt:expr, $fun:expr) => {
         match $opt {
@@ -54,8 +46,6 @@ pub struct EmulatorAccountStorage<P> {
     ethereum_accounts: RefCell<HashMap<H160, SolanaAccount>>,
     solana_accounts: RefCell<HashMap<Pubkey, Account>>,
     provider: P,
-    contract_id: H160,
-    caller_id: H160,
     block_number: u64,
     block_timestamp: i64,
 }
@@ -63,8 +53,6 @@ pub struct EmulatorAccountStorage<P> {
 impl<'a, P: Provider> EmulatorAccountStorage<P> {
     pub fn new(
         provider: P,
-        contract_id: H160,
-        caller_id: H160,
         block_number: Option<u64>,
     ) -> EmulatorAccountStorage<P> {
         eprintln!("backend::new");
@@ -94,8 +82,6 @@ impl<'a, P: Provider> EmulatorAccountStorage<P> {
             ethereum_accounts:  RefCell::new(HashMap::new()),
             solana_accounts:  RefCell::new(HashMap::new()),
             provider,
-            contract_id,
-            caller_id,
             block_number: slot,
             block_timestamp: timestamp,
         }

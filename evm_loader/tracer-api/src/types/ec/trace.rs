@@ -1,6 +1,6 @@
 use crate::types::Bytes;
-use ethereum_types::{Address, H256, U256};
-use evm::gasometer::Snapshot;
+use ethereum_types::Address;
+use evm::{H256, U256};
 use lazy_static::lazy_static;
 use log::{debug, warn};
 use std::cmp::min;
@@ -693,18 +693,19 @@ pub struct ExecutiveTracer {
     vecindex_stack: Vec<usize>,
     sublen_stack: Vec<usize>,
     skip_one: bool,
-    gas_snapshot: Option<Snapshot>,
+    // gas_snapshot: Option<Snapshot>,
 }
 
 impl ExecutiveTracer {
-    pub fn set_snapshot(&mut self, new: Snapshot) {
-        self.gas_snapshot.replace(new);
-    }
+    // pub fn set_snapshot(&mut self, new: Snapshot) {
+    //     self.gas_snapshot.replace(new);
+    // }
 
     fn get_current_used_gas(&self) -> U256 {
-        self.gas_snapshot
-            .map_or(0, |snapshot| snapshot.used_gas)
-            .into()
+        // self.gas_snapshot
+        //     .map_or(0, |snapshot| snapshot.used_gas)
+        //     .into()
+        U256::zero()
     }
 }
 
