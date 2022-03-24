@@ -25,7 +25,7 @@ use crate::types::ec::{
     trace::{self, Error as TraceError, FlatTrace, LocalizedTrace as EthLocalizedTrace},
 };
 use crate::v1::types::BlockNumber;
-use ethereum_types::{H160, H256, U256};
+use evm::{H160, H256, U256};
 use serde::{ser::SerializeStruct, Deserialize, Serialize, Serializer};
 //use vm;
 //

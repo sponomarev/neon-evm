@@ -43,7 +43,7 @@ fn create_keyed_accounts<'a>(
             let index = *index as usize;
             (
                 message.is_signer(index),
-                message.is_writable(index),
+                message.is_writable(index, false), // TODO: check false
                 &accounts[index].0,
                 &accounts[index].1 as &RefCell<AccountSharedData>,
             )
@@ -509,8 +509,10 @@ impl<'a> InvokeContext for LightIC<'a> {
             .map(|acc| Rc::new(acc.data.clone()))
     }
 
+    // TODO: check impl
     fn set_return_data(&mut self, return_data: Option<(Pubkey, Vec<u8>)>) {}
 
-    fn get_return_data(&self) -> &Option<(Pubkey, Vec<u8>)> {}
+    // TODO: check impl
+    fn get_return_data(&self) -> &Option<(Pubkey, Vec<u8>)> { &None }
 
 }

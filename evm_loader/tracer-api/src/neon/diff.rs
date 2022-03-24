@@ -63,7 +63,7 @@ where
             }
         };
         if let Some((address, diff)) = diff {
-            state_diff.raw.insert(address.to(), diff);
+            state_diff.raw.insert(address, diff);
         }
     }
 
@@ -82,7 +82,7 @@ where
                 iter::empty(),
             );
             if let Some(diff) = diff {
-                state_diff.raw.insert(address.to(), diff);
+                state_diff.raw.insert(address, diff);
             }
         } else {
             warn!("could not apply balance update to {}", address);

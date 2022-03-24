@@ -1,6 +1,6 @@
 use std::{collections::BTreeMap, iter};
 
-use ethereum_types::{H160, U256};
+use evm::{H160, U256};
 use serde::{self, Deserialize, Serialize};
 
 use crate::neon;
