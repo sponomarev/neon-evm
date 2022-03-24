@@ -17,7 +17,6 @@
 //! State diff module.
 
 use crate::types::ec::account_diff::*;
-use ethereum_types::Address;
 use evm::H160;
 use std::{collections::BTreeMap, fmt, ops::*};
 
@@ -46,7 +45,7 @@ impl fmt::Display for StateDiff {
 }
 
 impl Deref for StateDiff {
-    type Target = BTreeMap<Address, AccountDiff>;
+    type Target = BTreeMap<H160, AccountDiff>;
 
     fn deref(&self) -> &Self::Target {
         &self.raw

@@ -1,6 +1,5 @@
 use crate::types::Bytes;
-use ethereum_types::Address;
-use evm::{H256, U256};
+use evm::{H160, H256, U256};
 use lazy_static::lazy_static;
 use log::{debug, warn};
 use std::cmp::min;
@@ -61,7 +60,7 @@ pub struct LocalizedTrace {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Create {
     /// The address of the creator.
-    pub from: Address,
+    pub from: H160,
     /// The value with which the new account is endowed.
     pub value: U256,
     /// The gas available for the creation init code.
@@ -85,9 +84,9 @@ impl From<ActionParams> for Create {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Suicide {
     /// Suicided address.
-    pub address: Address,
+    pub address: H160,
     /// Suicided contract heir.
-    pub refund_address: Address,
+    pub refund_address: H160,
     /// Balance of the contract just before suicide.
     pub balance: U256,
 }
@@ -96,7 +95,7 @@ pub struct Suicide {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Reward {
     /// Author's address.
-    pub author: Address,
+    pub author: H160,
     /// Reward amount.
     pub value: U256,
     /// Reward type.
@@ -172,17 +171,17 @@ pub struct CreateResult {
     pub gas_used: U256,
     /// Code of the newly created contract.
     pub code: Bytes,
-    /// Address of the newly created contract.
-    pub address: Address,
+    /// H160 of the newly created contract.
+    pub address: H160,
 }
 
 /// Description of a _call_ action, either a `CALL` operation or a message transaction.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Call {
     /// The sending account.
-    pub from: Address,
+    pub from: H160,
     /// The destination account.
-    pub to: Address,
+    pub to: H160,
     /// The value transferred to the destination account.
     pub value: U256,
     /// The gas available for executing the call.
@@ -272,6 +271,7 @@ impl<'a> From<&'a evm::ExitReason> for Error {
                 ExitError::CreateEmpty => todo!(),
                 ExitError::CreateCollision => todo!(),
                 ExitError::CreateContractLimit => todo!(),
+                ExitError::StaticModeViolation => todo!(),
             },
             ExitReason::Revert(_) => Error::Reverted,
             ExitReason::Succeed(_) => todo!("not expected to succeed"),
@@ -591,17 +591,17 @@ impl ActionValue {
 /// Action (call/create) input params. Everything else should be specified in Externalities.
 #[derive(Clone, Debug)]
 pub struct ActionParams {
-    /// Address of currently executed code.
-    pub code_address: Address,
+    /// H160 of currently executed code.
+    pub code_address: H160,
     /// Hash of currently executed code.
     pub code_hash: Option<H256>,
     /// Receive address. Usually equal to code_address,
     /// except when called using CALLCODE.
-    pub address: Address,
+    pub address: H160,
     /// Sender of current part of the transaction.
-    pub sender: Address,
+    pub sender: H160,
     /// Transaction initiator.
-    pub origin: Address,
+    pub origin: H160,
     /// Gas paid up front for transaction execution
     pub gas: U256,
     /// Gas price.
@@ -624,11 +624,11 @@ impl Default for ActionParams {
     /// Returns default ActionParams initialized with zeros
     fn default() -> ActionParams {
         ActionParams {
-            code_address: Address::default(),
+            code_address: H160::default(),
             code_hash: Some(KECCAK_EMPTY),
-            address: Address::default(),
-            sender: Address::default(),
-            origin: Address::default(),
+            address: H160::default(),
+            sender: H160::default(),
+            origin: H160::default(),
             gas: U256::zero(),
             gas_price: U256::zero(),
             value: ActionValue::Transfer(U256::zero()),
@@ -664,7 +664,7 @@ pub trait Tracer: Send {
     fn prepare_trace_call(&mut self, params: Call, depth: usize, is_builtin: bool);
 
     /// Prepares create trace for given params. Would panic if prepare/done_trace are not balanced.
-    fn prepare_trace_create(&mut self, params: Create, address: Address);
+    fn prepare_trace_create(&mut self, params: Create, address: H160);
 
     /// Finishes a successful call trace. Would panic if prepare/done_trace are not balanced.
     fn done_trace_call(&mut self, gas_used: U256, output: &[u8]);
@@ -676,10 +676,10 @@ pub trait Tracer: Send {
     fn done_trace_failed(&mut self, error: &VmError);
 
     /// Stores suicide info.
-    fn trace_suicide(&mut self, address: Address, balance: U256, refund_address: Address);
+    fn trace_suicide(&mut self, address: H160, balance: U256, refund_address: H160);
 
     /// Stores reward info.
-    fn trace_reward(&mut self, author: Address, value: U256, reward_type: RewardType);
+    fn trace_reward(&mut self, author: H160, value: U256, reward_type: RewardType);
 
     /// Consumes self and returns all traces.
     fn drain(self) -> Vec<Self::Output>;
@@ -740,7 +740,7 @@ impl Tracer for ExecutiveTracer {
         self.sublen_stack.push(0);
     }
 
-    fn prepare_trace_create(&mut self, params: Create, address: Address) {
+    fn prepare_trace_create(&mut self, params: Create, address: H160) {
         assert!(!self.skip_one, "skip_one is used only for builtin contracts that do not have subsequent calls; in prepare_trace_create it cannot be true; qed");
 
         if let Some(parentlen) = self.sublen_stack.last_mut() {
@@ -857,7 +857,7 @@ impl Tracer for ExecutiveTracer {
         }
     }
 
-    fn trace_suicide(&mut self, address: Address, balance: U256, refund_address: Address) {
+    fn trace_suicide(&mut self, address: H160, balance: U256, refund_address: H160) {
         if let Some(parentlen) = self.sublen_stack.last_mut() {
             *parentlen += 1;
         }
@@ -880,7 +880,7 @@ impl Tracer for ExecutiveTracer {
         }
     }
 
-    fn trace_reward(&mut self, author: Address, value: U256, reward_type: RewardType) {
+    fn trace_reward(&mut self, author: H160, value: U256, reward_type: RewardType) {
         if let Some(parentlen) = self.sublen_stack.last_mut() {
             *parentlen += 1;
         }

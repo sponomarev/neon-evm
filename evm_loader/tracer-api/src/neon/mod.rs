@@ -53,28 +53,28 @@ use evm_loader::account::{ACCOUNT_SEED_VERSION};
 pub trait To<T> {
     fn to(self) -> T;
 }
-
-macro_rules! impl_to {
-    ($x:ty => $y:ty; $n:literal) => {
-        impl To<$y> for $x {
-            fn to(self) -> $y {
-                let arr: [u8; $n] = self.into();
-                <$y>::from(arr)
-            }
-        }
-
-        impl To<$x> for $y {
-            fn to(self) -> $x {
-                let arr: [u8; $n] = self.into();
-                <$x>::from(arr)
-            }
-        }
-    };
-}
-impl_to!(U256 => ethereum_types::H256; 32);
-impl_to!(U256 => ethereum_types::U256; 32);
-impl_to!(H256 => ethereum_types::H256; 32);
-impl_to!(H160 => ethereum_types::H160; 20);
+//
+// macro_rules! impl_to {
+//     ($x:ty => $y:ty; $n:literal) => {
+//         impl To<$y> for $x {
+//             fn to(self) -> $y {
+//                 let arr: [u8; $n] = self.into();
+//                 <$y>::from(arr)
+//             }
+//         }
+//
+//         impl To<$x> for $y {
+//             fn to(self) -> $x {
+//                 let arr: [u8; $n] = self.into();
+//                 <$x>::from(arr)
+//             }
+//         }
+//     };
+// }
+// impl_to!(U256 => evm::H256; 32);
+// impl_to!(U256 => evm::U256; 32);
+// impl_to!(H256 => evm::H256; 32);
+// impl_to!(H160 => evm::H160; 20);
 
 type Error = anyhow::Error;
 
@@ -354,6 +354,8 @@ where
         value
     );
 
+    let new_contract_id: Option<H160> = contract.map_or_else(|| deployed_contract_id(&provider,  &caller_id, block_number).ok(), |_| None);
+
     let storage = EmulatorAccountStorage::new(provider, block_number);
 
     // u64::MAX is too large, remix gives this error:
@@ -371,7 +373,7 @@ where
 
     let mut tracer = Tracer::new(js_tracer);
 
-    let (_, exit_reason) = tracer.using(|| match contract {
+    let (_, exit_reason) = tracer.using(|| match &contract {
         Some(contract_id) => {
             debug!(
                 "call_begin(caller_id={:?}, contract_id={:?}, data={:?}, value={:?})",
@@ -382,7 +384,7 @@ where
             );
             executor.call_begin(
                 caller_id,
-                contract_id,
+                *contract_id,
                 data.unwrap_or_default(),
                 value.unwrap_or_default(),
                 gas_limit,
@@ -398,15 +400,15 @@ where
             // Ok::<_, solana_program::program_error::ProgramError>(executor.execute())
         }
         None => {
-            let contract_id = deployed_contract_id(&provider,  &caller_id, block_number)?;
+            let new_contract_id = new_contract_id.unwrap();
             debug!(
                 "create_begin(contract_id={:?}, data={:?}, value={:?})",
-                contract_id,
+                new_contract_id,
                 &hex::encode(data.clone().unwrap_or_default()),
                 value
             );
             executor.create_begin(
-                contract_id,
+                new_contract_id,
                 data.unwrap_or_default(),
                 value.unwrap_or_default(),
                 gas_limit,
@@ -507,10 +509,10 @@ pub fn command_trace_raw(
 
     command_trace_call(
         provider,
-        contract_id.map(To::to),
-        caller_id.to(),
+        contract_id,
+        caller_id,
         Some(data.clone()),
-        Some(value.to()),
+        Some(value),
         Some(gas.as_u128() as u64),
         block_number,
         None,

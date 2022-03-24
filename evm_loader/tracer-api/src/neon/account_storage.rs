@@ -81,7 +81,7 @@ impl<'a, P: Provider> EmulatorAccountStorage<P> {
             // accounts: RefCell::new(HashMap::new()),
             ethereum_accounts:  RefCell::new(HashMap::new()),
             solana_accounts:  RefCell::new(HashMap::new()),
-            provider,
+            provider: provider,
             block_number: slot,
             block_timestamp: timestamp,
         }
@@ -110,17 +110,21 @@ impl<'a, P: Provider> EmulatorAccountStorage<P> {
                 return false
             }
             let mut solana = solana.unwrap();
-            let info = account_info(&key, &mut solana);
 
-            let ether_account = match EthereumAccount::from_account(self.provider.evm_loader(), &info){
-                Ok(acc) => acc,
-                Err(e) => {
-                    warn!("EthereumAccount::from_account() error: {}", key);
-                    return false;
-                }
+            let code_key_opt = {
+                let info = account_info(&key, &mut solana);
+
+                let ether_account = match EthereumAccount::from_account(self.provider.evm_loader(), &info){
+                    Ok(acc) => acc,
+                    Err(e) => {
+                        warn!("EthereumAccount::from_account() error: {}", key);
+                        return false;
+                    }
+                };
+                ether_account.code_account
             };
 
-            let code_account = if let Some(code_key) = ether_account.code_account {
+            let code_account = if let Some(code_key) = code_key_opt {
                 let acc = match self.provider.get_account_at_slot(&code_key, self.block_number){
                     Ok(a) => a,
                     Err(_) => {
@@ -172,9 +176,8 @@ impl<'a, P: Provider> EmulatorAccountStorage<P> {
 
         let mut accounts = self.ethereum_accounts.borrow_mut();
 
-        if let Some( solana) = accounts.get(address) {
-            let  mut account = &solana.account;
-            let info =account_info(&solana.key, &mut account);
+        if let Some( solana) = accounts.get_mut(address) {
+            let info = account_info(&solana.key, &mut solana.account);
 
             let ethereum_account = EthereumAccount::from_account(self.provider.evm_loader(), &info).unwrap();
             f(&ethereum_account)
@@ -191,11 +194,10 @@ impl<'a, P: Provider> EmulatorAccountStorage<P> {
 
         let mut accounts = self.ethereum_accounts.borrow_mut();
 
-        if let Some(solana) = accounts.get(address) {
+        if let Some(solana) = accounts.get_mut(address) {
 
             if let Some(ref code_acc) = solana.code_account {
-                let  mut account = &solana.account;
-                let info =account_info(&solana.key, &mut account);
+                let info =account_info(&solana.key, &mut solana.account);
                 let ethereum_contract = EthereumContract::from_account(self.provider.evm_loader(), &info).unwrap();
 
                 f(&ethereum_contract)
@@ -266,9 +268,9 @@ impl<P: Provider> AccountStorage for EmulatorAccountStorage<P> {
 
         let mut solana_accounts = self.solana_accounts.borrow_mut();
 
-        if let Some(mut account) = solana_accounts.get(token_account) {
+        if let Some(account) = solana_accounts.get_mut(token_account) {
 
-            let info = account_info(&token_account, &mut account);
+            let info = account_info(&token_account, account);
             token::State::from_account(&info).map_or(0_u64, |a| a.amount)
         }
         else{
@@ -281,8 +283,8 @@ impl<P: Provider> AccountStorage for EmulatorAccountStorage<P> {
 
         let mut solana_accounts = self.solana_accounts.borrow_mut();
 
-        if let Some(mut account) = solana_accounts.get(token_mint) {
-            let info = account_info(&token_mint, &mut account);
+        if let Some(account) = solana_accounts.get_mut(token_mint) {
+            let info = account_info(&token_mint, account);
             token::Mint::from_account(&info).map_or(0_u64, |a| a.supply)
         }
         else{
@@ -295,8 +297,8 @@ impl<P: Provider> AccountStorage for EmulatorAccountStorage<P> {
 
         let mut solana_accounts = self.solana_accounts.borrow_mut();
 
-        if let Some(mut account) = solana_accounts.get(token_mint) {
-            let info = account_info(&token_mint, &mut account);
+        if let Some(account) = solana_accounts.get_mut(token_mint) {
+            let info = account_info(&token_mint, account);
             token::Mint::from_account(&info).map_or(0_u8, |a| a.decimals)
         }
         else{
@@ -311,8 +313,8 @@ impl<P: Provider> AccountStorage for EmulatorAccountStorage<P> {
 
         let mut solana_accounts = self.solana_accounts.borrow_mut();
 
-        if let Some(mut account) = solana_accounts.get(&sol) {
-            let info = account_info(&sol, &mut account);
+        if let Some(account) = solana_accounts.get_mut(&sol) {
+            let info = account_info(&sol, account);
             ERC20Allowance::from_account(self.provider.evm_loader(), &info)
                 .map_or_else(|_| U256::zero(), |a| a.value)
         }
@@ -326,19 +328,18 @@ impl<P: Provider> AccountStorage for EmulatorAccountStorage<P> {
 
         let mut solana_accounts = self.solana_accounts.borrow_mut();
 
-        if let Some(mut account) = solana_accounts.get(key) {
+        if let Some(account) = solana_accounts.get_mut(key) {
             if account.owner == *self.provider.evm_loader() { // NeonEVM accounts may be already borrowed
                 return None;
             }
-            let info = account_info(&key, &mut account);
             Some(evm_loader::query::Value {
-                owner: *info.owner,
-                length: info.data_len(),
-                lamports: info.lamports(),
-                executable: info.executable,
-                rent_epoch: info.rent_epoch,
+                owner: account.owner,
+                length: account.data.len(),
+                lamports: account.lamports,
+                executable: account.executable,
+                rent_epoch: account.rent_epoch,
                 offset: data_offset,
-                data: evm_loader::query::clone_chunk(&info.data.borrow(), data_offset, data_len),
+                data: evm_loader::query::clone_chunk(&account.data, data_offset, data_len),
             })
         }
         else{

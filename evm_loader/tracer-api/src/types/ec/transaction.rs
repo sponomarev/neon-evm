@@ -23,7 +23,7 @@ use crate::{
     transaction::error,
 };
 */
-use ethereum_types::{Address, BigEndianHash, H160, H256, U256};
+use evm::{ H160, H256, U256};
 
 use rlp::{self, DecoderError, Rlp, RlpStream};
 use std::{cmp::min, ops::Deref};
@@ -43,10 +43,10 @@ pub fn keccak(data: &[u8]) -> H256 {
 }
 
 /// Fake address for unsigned transactions as defined by EIP-86.
-pub const UNSIGNED_SENDER: Address = H160([0xff; 20]);
+pub const UNSIGNED_SENDER: H160 = H160([0xff; 20]);
 
 /// System sender address for internal state updates.
-pub const SYSTEM_ADDRESS: Address = H160([
+pub const SYSTEM_ADDRESS: H160 = H160([
     0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
     0xff, 0xff, 0xff, 0xfe,
 ]);
@@ -58,7 +58,7 @@ pub enum Action {
     Create,
     /// Calls contract at given address.
     /// In the case of a transfer, this is the receiver's address.'
-    Call(Address),
+    Call(H160),
 }
 
 impl Default for Action {
@@ -559,7 +559,7 @@ impl TypedTransaction {
     }
 
     /// Specify the sender; this won't survive the serialize/deserialize process, but can be cloned.
-    pub fn fake_sign(self, from: Address) -> SignedTransaction {
+    pub fn fake_sign(self, from: H160) -> SignedTransaction {
         SignedTransaction {
             transaction: UnverifiedTransaction {
                 unsigned: self,
@@ -865,9 +865,17 @@ impl UnverifiedTransaction {
 
     /// Construct a signature object from the sig.
     pub fn signature(&self) -> Signature {
-        let r: H256 = BigEndianHash::from_uint(&self.signature.r);
-        let s: H256 = BigEndianHash::from_uint(&self.signature.s);
-        Signature::from_rsv(&r, &s, self.standard_v())
+        let r: H256 = H256::from(self.signature.r);
+        let s: H256 = H256::from(self.signature.s);
+
+        let mut sig = [0u8; 65];
+        sig[0..32].copy_from_slice(r.as_ref());
+        sig[32..64].copy_from_slice(s.as_ref());
+        sig[64] = self.standard_v();
+
+        Signature::from(sig)
+
+        // Signature::from_rsv(&r, &s, self.standard_v())
     }
 
     /*
@@ -888,9 +896,12 @@ impl UnverifiedTransaction {
 
     /// Recovers the public key of the sender.
     pub fn recover_public(&self) -> Result<Public, publickey::Error> {
+        let hash : H256 = self.unsigned.signature_hash(self.chain_id());
+        let hash_ethereum_types : ethereum_types::H256 = ethereum_types::H256::from_slice(hash.as_bytes() );
+
         Ok(recover(
             &self.signature(),
-            &self.unsigned.signature_hash(self.chain_id()),
+            &hash_ethereum_types,
         )?)
     }
 
@@ -921,7 +932,7 @@ impl UnverifiedTransaction {
 #[derive(Debug, Clone, Eq, PartialEq, )]
 pub struct SignedTransaction {
     transaction: UnverifiedTransaction,
-    sender: Address,
+    sender: H160,
     public: Option<Public>,
 }
 
@@ -945,7 +956,7 @@ impl SignedTransaction {
             return Err(publickey::Error::InvalidSignature);
         }
         let public = transaction.recover_public()?;
-        let sender = public_to_address(&public);
+        let sender = H160::from_slice( public_to_address(&public).as_bytes());
         Ok(SignedTransaction {
             transaction,
             sender,
@@ -954,7 +965,7 @@ impl SignedTransaction {
     }
 
     /// Returns transaction sender.
-    pub fn sender(&self) -> Address {
+    pub fn sender(&self) -> H160 {
         self.sender
     }
 
@@ -969,7 +980,7 @@ impl SignedTransaction {
     }
 
     /// Deconstructs this transaction back into `UnverifiedTransaction`
-    pub fn deconstruct(self) -> (UnverifiedTransaction, Address, Option<Public>) {
+    pub fn deconstruct(self) -> (UnverifiedTransaction, H160, Option<Public>) {
         (self.transaction, self.sender, self.public)
     }
 
@@ -994,13 +1005,13 @@ pub struct LocalizedTransaction {
     /// Transaction index within block.
     pub transaction_index: usize,
     /// Cached sender
-    pub cached_sender: Option<Address>,
+    pub cached_sender: Option<H160>,
 }
 
 impl LocalizedTransaction {
     /// Returns transaction sender.
     /// Panics if `LocalizedTransaction` is constructed using invalid `UnverifiedTransaction`.
-    pub fn sender(&mut self) -> Address {
+    pub fn sender(&mut self) -> H160 {
         if let Some(sender) = self.cached_sender {
             return sender;
         }
@@ -1139,7 +1150,7 @@ mod tests {
             data: b"Hello!".to_vec(),
         })
         .sign(&key.secret(), None);
-        assert_eq!(Address::from(keccak(key.public())), t.sender());
+        assert_eq!(H160::from(keccak(key.public())), t.sender());
         assert_eq!(t.chain_id(), None);
     }
 
@@ -1153,12 +1164,12 @@ mod tests {
             value: U256::from(1),
             data: b"Hello!".to_vec(),
         })
-        .fake_sign(Address::from_low_u64_be(0x69));
-        assert_eq!(Address::from_low_u64_be(0x69), t.sender());
+        .fake_sign(H160::from_low_u64_be(0x69));
+        assert_eq!(H160::from_low_u64_be(0x69), t.sender());
         assert_eq!(t.chain_id(), None);
 
         let t = t.clone();
-        assert_eq!(Address::from_low_u64_be(0x69), t.sender());
+        assert_eq!(H160::from_low_u64_be(0x69), t.sender());
         assert_eq!(t.chain_id(), None);
     }
 
@@ -1170,7 +1181,7 @@ mod tests {
             gas_price: U256::from(10000000000u64),
             gas: U256::from(21000),
             action: Action::Call(
-                Address::from_str("d46e8dd67c5d32be8058bb8eb970870f07244567").unwrap(),
+                H160::from_str("d46e8dd67c5d32be8058bb8eb970870f07244567").unwrap(),
             ),
             value: U256::from(1),
             data: vec![],
@@ -1197,7 +1208,7 @@ mod tests {
             data: b"Hello!".to_vec(),
         })
         .sign(&key.secret(), Some(69));
-        assert_eq!(Address::from(keccak(key.public())), t.sender());
+        assert_eq!(H160::from(keccak(key.public())), t.sender());
         assert_eq!(t.chain_id(), Some(69));
     }
 

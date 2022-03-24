@@ -21,7 +21,7 @@ use crate::v1::types::{
     BlockNumber, Bytes, CallRequest, Index, LocalizedTrace, TraceFilter, TraceOptions,
     TraceResults, TraceResultsWithTransactionHash,
 };
-use ethereum_types::H256;
+use evm::H256;
 
 type Result<T> = std::result::Result<T, Error>;
 
@@ -237,7 +237,7 @@ impl GethTraceServer for ServerImpl {
         let o = o.unwrap_or_default();
         let trace_code = o.tracer.clone();
         let (_meta, traced_call) =
-            neon::command_replay_transaction(&self.neon_config, t.to(), trace_code)?.split();
+            neon::command_replay_transaction(&self.neon_config, t, trace_code)?.split();
         if let Some(js_trace) = traced_call.js_trace {
             Ok(Some(geth::Trace::JsTrace(js_trace)))
         } else {
@@ -265,10 +265,10 @@ impl GethTraceServer for ServerImpl {
 
         let traced_call = neon::command_trace_call(
             provider,
-            a.to.map(To::to),
-            a.from.map(To::to).unwrap(), // TODO
+            a.to,
+            a.from.unwrap(), // TODO
             a.input.map(Into::into),
-            a.value.map(To::to),
+            a.value,
             a.gas.map(|gas| gas.as_u64()),
             Some(b.into()),
             trace_code,
@@ -299,8 +299,8 @@ impl OpenEthereumTracesServer for ServerImpl {
             .to_block
             .map(|block| self.get_slot_by_block(block))
             .flatten();
-        let from_address = f.from_address.map(|f| f.into_iter().map(To::to).collect());
-        let to_address = f.to_address.map(|f| f.into_iter().map(To::to).collect());
+        let from_address = f.from_address.map(|f| f.into_iter().collect());
+        let to_address = f.to_address.map(|f| f.into_iter().collect());
         let offset = f.after;
         let count = f.count;
         let traced_calls = neon::command_filter_traces(
@@ -324,7 +324,7 @@ impl OpenEthereumTracesServer for ServerImpl {
                         subtraces: flat.subtraces,
                         trace_address: flat.trace_address,
                         transaction_number: None, // TODO: add idx to db or just enumerate?
-                        transaction_hash: Some(meta.eth_signature.to()),
+                        transaction_hash: Some(meta.eth_signature),
                         block_number: meta.slot,
                         block_hash: H256::from_low_u64_ne(meta.slot), // TODO: revise this
                     }
@@ -342,7 +342,7 @@ impl OpenEthereumTracesServer for ServerImpl {
         use neon::To;
         use types::ec::trace::LocalizedTrace;
         let (meta, traced_call) =
-            neon::command_replay_transaction(&self.neon_config, t.to(), None)?.split();
+            neon::command_replay_transaction(&self.neon_config, t, None)?.split();
 
         // TODO: it's unclear what's index
         let trace = traced_call.traces.get(i[0].value()).map(|flat| {
@@ -366,7 +366,7 @@ impl OpenEthereumTracesServer for ServerImpl {
         use neon::To;
         use types::ec::trace::LocalizedTrace;
 
-        let traced_call = neon::command_replay_transaction(&self.neon_config, t.to(), None)?;
+        let traced_call = neon::command_replay_transaction(&self.neon_config, t, None)?;
         let (meta, traced_call) = traced_call.split();
         let traces = traced_call
             .traces
@@ -378,7 +378,7 @@ impl OpenEthereumTracesServer for ServerImpl {
                     subtraces: flat.subtraces,
                     trace_address: flat.trace_address,
                     transaction_number: None, // TODO??
-                    transaction_hash: Some(meta.eth_signature.to()),
+                    transaction_hash: Some(meta.eth_signature),
                     block_number: meta.slot,
                     block_hash: H256::from_low_u64_ne(meta.slot),
                 }
@@ -410,7 +410,7 @@ impl OpenEthereumTracesServer for ServerImpl {
                         // !: Since we tracing whole block it's ok to use trace index.
                         // !: Anyway this must be revised if tx index hits the db schema.
                         transaction_number: Some(idx),
-                        transaction_hash: Some(meta.eth_signature.to()),
+                        transaction_hash: Some(meta.eth_signature),
                         block_number: meta.slot,
                         block_hash: H256::from_low_u64_ne(meta.slot), // TODO
                     }
@@ -437,10 +437,10 @@ impl OpenEthereumTracesServer for ServerImpl {
         );
         let traced_call = neon::command_trace_call(
             provider,
-            req.to.map(To::to),
-            req.from.map(To::to).unwrap(), // todo
+            req.to,
+            req.from.unwrap(), // todo
             req.data.map(Into::into),      // todo
-            req.value.map(To::to),
+            req.value,
             req.gas.map(|gas| gas.as_u64()),
             block.map(|block| self.get_slot_by_block(block)).flatten(),
             None,
@@ -480,7 +480,7 @@ impl OpenEthereumTracesServer for ServerImpl {
     #[instrument]
     fn replay_transaction(&self, t: H256, options: TraceOptions) -> Result<TraceResults> {
         use neon::To;
-        let traced_call = neon::command_replay_transaction(&self.neon_config, t.to(), None)?;
+        let traced_call = neon::command_replay_transaction(&self.neon_config, t, None)?;
         let options = ParsedTraceOptions::parse(&options);
 
         Ok(trace_with_options(traced_call.value, &options))
@@ -508,7 +508,7 @@ impl OpenEthereumTracesServer for ServerImpl {
                     trace: trace_result.trace,
                     vm_trace: trace_result.vm_trace,
                     state_diff: trace_result.state_diff,
-                    transaction_hash: meta.eth_signature.to(),
+                    transaction_hash: meta.eth_signature,
                 }
             })
             .collect())

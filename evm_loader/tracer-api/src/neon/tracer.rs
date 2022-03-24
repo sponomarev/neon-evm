@@ -1,4 +1,3 @@
-use ethereum_types::Address;
 // use evm::gasometer::{tracing as gas_tracing, Snapshot};
 use evm::{Capture, ExitReason, ExitSucceed, Memory, H160, H256, U256};
 use evm::{Opcode, Stack};
@@ -198,8 +197,8 @@ impl transaction_tracing::EventListener for Tracer {
                 let gas: U256 = target_gas.map_or_else(Default::default, Into::into);
 
                 let params = Call {
-                    from: context.caller.to(), // TODO: Maybe address?
-                    to: to.to(),
+                    from: context.caller, // TODO: Maybe address?
+                    to: to,
                     input: From::from(input),
                     call_type,
                     value: value,
@@ -223,7 +222,7 @@ impl transaction_tracing::EventListener for Tracer {
                 let gas = target_gas.map_or_else(Default::default, Into::into);
 
                 let params = Create {
-                    from: caller.to(),
+                    from: caller,
                     value: value,
                     gas,
                     init: From::from(init_code),
@@ -234,7 +233,7 @@ impl transaction_tracing::EventListener for Tracer {
                 });
 
                 // TODO: add address to create
-                self.tracer.prepare_trace_create(params, address.to());
+                self.tracer.prepare_trace_create(params, address);
             }
             Event::Suicide {
                 address,
@@ -242,7 +241,7 @@ impl transaction_tracing::EventListener for Tracer {
                 balance,
             } => {
                 self.tracer
-                    .trace_suicide(address.to(), balance, target.to());
+                    .trace_suicide(address, balance, target);
             }
             Event::Exit {
                 reason,
@@ -283,8 +282,8 @@ impl transaction_tracing::EventListener for Tracer {
                 let call_type = CallType::Call; // TODO: Add CallScheme to event
 
                 let params = Call {
-                    from: caller.to(), // TODO: Maybe address?
-                    to: to.to(),
+                    from: caller, // TODO: Maybe address?
+                    to: to,
                     input: From::from(data),
                     call_type,
                     value: value,
@@ -304,7 +303,7 @@ impl transaction_tracing::EventListener for Tracer {
                 address,
             } => {
                 let params = Create {
-                    from: caller.to(),
+                    from: caller,
                     value: value,
                     gas: gas_limit,
                     init: From::from(init_code),
@@ -320,7 +319,7 @@ impl transaction_tracing::EventListener for Tracer {
                         None,
                     );
                 });
-                self.tracer.prepare_trace_create(params, address.to());
+                self.tracer.prepare_trace_create(params, address);
             }
             Event::TransactCreate2 {
                 caller,
@@ -331,7 +330,7 @@ impl transaction_tracing::EventListener for Tracer {
                 address,
             } => {
                 let params = Create {
-                    from: caller.to(),
+                    from: caller,
                     value: value,
                     gas: gas_limit.into(),
                     init: From::from(init_code),
@@ -348,7 +347,7 @@ impl transaction_tracing::EventListener for Tracer {
                     );
                 });
 
-                self.tracer.prepare_trace_create(params, address.to());
+                self.tracer.prepare_trace_create(params, address);
             }
         }
     }

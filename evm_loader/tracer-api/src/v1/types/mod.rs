@@ -1,4 +1,5 @@
-use ethereum_types::{H160, H256, U256, U64};
+use evm::{H160, H256, U256};
+use ethereum_types::U64;
 use rustc_hex::{FromHex, ToHex};
 use serde::{
     de::Error, de::MapAccess, de::Visitor, Deserialize, Deserializer, Serialize, Serializer,
