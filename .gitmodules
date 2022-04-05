@@ -2,3 +2,11 @@
 	path = evm_loader/rust-evm
 	url = https://github.com/neonlabsorg/evm.git
 	branch = develop
+[submodule "solana"]
+	path = solana
+	url = git@github.com:neonlabsorg/solana.git
+	branch = ankr 
+[submodule "solana-program-library"]
+	path = solana-program-library
+	url = git@github.com:neonlabsorg/solana-program-library.git
+	branch = ankr 

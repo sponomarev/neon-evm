@@ -24,10 +24,10 @@ num_cpus = "1.13"
 secp256k1 = "0.20"
 serde = { version = "1.0", default_features = false }
 serde_json = "1.0"
-solana-client = "=1.9.12"
-solana-sdk = "=1.9.12"
-spl-associated-token-account = { version = "1.0", default_features = false, features = ["no-entrypoint"] }
-spl-token = { version = "3.2", default_features = false, features = ["no-entrypoint"] }
+solana-client = { path = "../../solana/client" }
+solana-sdk = { path = "../../solana/sdk" }
+spl-associated-token-account = { path = "../../solana-program-library/associated-token-account/program", default_features = false, features = ["no-entrypoint"] }
+spl-token = { path = "../../solana-program-library/token/program", default_features = false, features = ["no-entrypoint"] }
 structopt = "0.3"
 termimad = "0.20"
 thiserror = "1.0"
