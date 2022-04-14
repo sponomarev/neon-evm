@@ -1,4 +1,4 @@
-ARG SOLANA_REVISION=v1.9.12-testnet-with_trx_cap
+ARG SOLANA_REVISION=v1.9.12-testnet-bn256-syscalls
 # Install BPF SDK
 FROM solanalabs/rust:latest AS builder
 RUN rustup toolchain install nightly
@@ -13,6 +13,8 @@ ENV PATH=/root/.local/share/solana/install/active_release/bin:/usr/local/cargo/b
 # Note: create stub Cargo.toml to speedup build
 FROM builder AS evm-loader-builder
 COPY ./evm_loader/ /opt/evm_loader/
+COPY ./solana/ /opt/solana/
+COPY ./solana-program-library/ /opt/solana-program-library/
 WORKDIR /opt/evm_loader
 RUN cd program && /opt/evm_loader/ci_checks.sh
 ARG REVISION

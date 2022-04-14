@@ -5,6 +5,6 @@ docker images
 
 docker login -u=${DHUBU} -p=${DHUBP}
 
-docker push neonlabsorg/evm_loader:${BUILDKITE_COMMIT}
+docker push neonlabsorg/evm_loader:ankr
 
 
