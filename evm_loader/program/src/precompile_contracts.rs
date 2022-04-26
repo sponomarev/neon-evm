@@ -12,6 +12,7 @@ use evm::{Capture, ExitReason, H160, U256};
 use solana_program::pubkey::Pubkey;
 use solana_program::secp256k1_recover::secp256k1_recover;
 use solana_program::alt_bn128::prelude::*;
+use solana_program::big_mod_exp::prelude::{MAX_BIG_MOD_EXP_OUTPUT_LEN, big_mod_exp as sol_big_mod_exp};
 
 const SYSTEM_ACCOUNT_ERC20_WRAPPER: H160 =     H160([0xff, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x01]);
 const SYSTEM_ACCOUNT_QUERY: H160 =             H160([0xff, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x02]);
@@ -607,63 +608,27 @@ pub fn datacopy(
 /// Call inner `big_mod_exp`
 #[must_use]
 pub fn big_mod_exp<'a, B: AccountStorage>(
-    _input: &[u8],
+    input: &[u8],
     _state: &mut ExecutorState<'a, B>
 ) -> Capture<(ExitReason, Vec<u8>), Infallible> {
-    // Should be implemented via Solana syscall
-    Capture::Exit((ExitReason::Fatal(evm::ExitFatal::NotSupported), vec![0; 0]))
-
-    /*
-    use num_bigint::BigUint;
-    use num_traits::{One, Zero};
     debug_print!("big_mod_exp");
-    debug_print!("input: {}", &hex::encode(&input));
+    debug_print!("input: {}", hex::encode(&input));
 
-    if input.len() < 96 {
-        return Capture::Exit((ExitReason::Succeed(evm::ExitSucceed::Returned), vec![0; 0]))
+    let return_buf = |buf: Vec<u8>| {
+        Capture::Exit((ExitReason::Succeed(evm::ExitSucceed::Returned), buf))
     };
+    let buf = [0_u8; MAX_BIG_MOD_EXP_OUTPUT_LEN as usize];
 
-    let (base_len, rest) = input.split_at(32);
-    let (exp_len, rest) = rest.split_at(32);
-    let (mod_len, rest) = rest.split_at(32);
-
-    let base_len: usize = match U256::from_big_endian(base_len).try_into() {
-        Ok(value) => value,
-        Err(_) => return Capture::Exit((ExitReason::Succeed(evm::ExitSucceed::Returned), vec![0; 0]))
+    let (_, result) = match sol_big_mod_exp(input) {
+        Ok(result) => result,
+        Err(err) => {
+            debug_print!("big_mod_exp error: {}", err);
+            return return_buf(buf.to_vec())
+        }
     };
-    let exp_len: usize = match U256::from_big_endian(exp_len).try_into() {
-        Ok(value) => value,
-        Err(_) => return Capture::Exit((ExitReason::Succeed(evm::ExitSucceed::Returned), vec![0; 0]))
-    };
-    let mod_len: usize = match U256::from_big_endian(mod_len).try_into() {
-        Ok(value) => value,
-        Err(_) => return Capture::Exit((ExitReason::Succeed(evm::ExitSucceed::Returned), vec![0; 0]))
-    };
+    debug_print!("{}", hex::encode(&result));
 
-    if base_len == 0 && mod_len == 0 {
-        return Capture::Exit((ExitReason::Succeed(evm::ExitSucceed::Returned), vec![0_u8; 32]));
-    }
-
-    let (base_val, rest) = rest.split_at(base_len);
-    let (exp_val, rest) = rest.split_at(exp_len);
-    let (mod_val, _rest) = rest.split_at(mod_len);
-
-    let base_val = BigUint::from_bytes_be(base_val);
-    let exp_val  = BigUint::from_bytes_be(exp_val);
-    let mod_val  = BigUint::from_bytes_be(mod_val);
-
-    if mod_val.is_zero() || mod_val.is_one() {
-        let return_value = vec![0_u8; mod_len];
-        return Capture::Exit((ExitReason::Succeed(evm::ExitSucceed::Returned), return_value));
-    }
-
-    let ret_int = base_val.modpow(&exp_val, &mod_val);
-    let ret_int = ret_int.to_bytes_be();
-    let mut return_value = vec![0_u8; mod_len - ret_int.len()];
-    return_value.extend(ret_int);
-
-    Capture::Exit((ExitReason::Succeed(evm::ExitSucceed::Returned), return_value))
-    */
+    return_buf(result)
 }
 
 /// Call inner `bn256Add`
@@ -671,7 +636,7 @@ pub fn big_mod_exp<'a, B: AccountStorage>(
 #[allow(unused)]
 pub fn bn256_add<'a, B: AccountStorage>(
     input: &[u8],
-    state: &mut ExecutorState<'a, B>
+    _state: &mut ExecutorState<'a, B>
 ) -> Capture<(ExitReason, Vec<u8>), Infallible> {
     debug_print!("bn256Add");
     debug_print!("input: {}", hex::encode(&input));
@@ -679,7 +644,7 @@ pub fn bn256_add<'a, B: AccountStorage>(
     let return_buf = |buf: Vec<u8>| {
         Capture::Exit((ExitReason::Succeed(evm::ExitSucceed::Returned), buf))
     };
-    let mut buf = [0_u8; ALT_BN128_ADDITION_OUTPUT_LEN];
+    let buf = [0_u8; ALT_BN128_ADDITION_OUTPUT_LEN];
 
     let result = match alt_bn128_addition(input) {
         Ok(result) => result,
@@ -706,7 +671,7 @@ pub fn bn256_scalar_mul<'a, B: AccountStorage>(
     let return_buf = |buf: Vec<u8>| {
         Capture::Exit((ExitReason::Succeed(evm::ExitSucceed::Returned), buf))
     };
-    let mut buf = [0_u8; ALT_BN128_MULTIPLICATION_OUTPUT_LEN];
+    let buf = [0_u8; ALT_BN128_MULTIPLICATION_OUTPUT_LEN];
 
     let result = match alt_bn128_multiplication(input) {
         Ok(result) => result,
@@ -733,7 +698,7 @@ pub fn bn256_pairing<'a, B: AccountStorage>(
     let return_buf = |buf: Vec<u8>| {
         Capture::Exit((ExitReason::Succeed(evm::ExitSucceed::Returned), buf))
     };
-    let mut buf = [0_u8; ALT_BN128_PAIRING_OUTPUT_LEN];
+    let buf = [0_u8; ALT_BN128_PAIRING_OUTPUT_LEN];
 
     let result = match alt_bn128_pairing(input) {
         Ok(result) => result,
