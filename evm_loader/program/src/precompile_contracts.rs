@@ -607,6 +607,7 @@ pub fn datacopy(
 
 /// Call inner `big_mod_exp`
 #[must_use]
+#[allow(unused)]
 pub fn big_mod_exp<'a, B: AccountStorage>(
     input: &[u8],
     _state: &mut ExecutorState<'a, B>
