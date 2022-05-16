@@ -56,7 +56,7 @@ pub fn execute(
     };
 
     let (exit_reason, result, applies_logs,  steps_executed, used_gas) = {
-        let gas_limit = U256::from(999_999_999_999_u64);
+        let gas_limit = U256::MAX;
         let mut executor = Machine::new(caller_id, &storage)?;
         debug!("Executor initialized");
 
