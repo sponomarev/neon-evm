@@ -1,4 +1,4 @@
-ARG SOLANA_REVISION
+ARG SOLANA_IMAGE
 # Install BPF SDK
 FROM solanalabs/rust:latest AS builder
 RUN rustup toolchain install nightly
@@ -25,6 +25,14 @@ RUN cargo +nightly clippy && \
     cargo build-bpf --features no-logs,mainnet && cp target/deploy/evm_loader.so target/deploy/evm_loader-mainnet.so && \
     cargo build-bpf --features no-logs
 
+# Download and build spl-token
+FROM builder AS spl-token-builder
+ADD http://github.com/solana-labs/solana-program-library/archive/refs/tags/token-cli-v2.0.14.tar.gz /opt/
+RUN tar -xvf /opt/token-cli-v2.0.14.tar.gz && \
+    cd /opt/solana-program-library-token-cli-v2.0.14/token/cli && \
+    cargo build --release && \
+    cp /opt/solana-program-library-token-cli-v2.0.14/target/release/spl-token /opt/
+
 # Build Solidity contracts
 FROM ethereum/solc:0.7.0 AS solc
 FROM ubuntu:20.04 AS contracts
@@ -40,7 +48,7 @@ RUN solc --output-dir . --bin *.sol && \
         ls -l
 
 # Define solana-image that contains utility
-FROM solanalabs/solana:${SOLANA_REVISION} AS solana
+FROM ${SOLANA_IMAGE} AS solana
 
 # Build target image
 FROM ubuntu:20.04 AS base
@@ -62,22 +70,24 @@ RUN npm install
 WORKDIR /opt
 
 COPY --from=solana \
-     /usr/bin/solana \
-     /usr/bin/solana-validator \
-     /usr/bin/solana-keygen \
-     /usr/bin/solana-faucet \
-     /usr/bin/solana-genesis \
-     /usr/bin/solana-run.sh \
-     /usr/bin/fetch-spl.sh \
-     /usr/bin/spl* \
-     /opt/solana/bin/
+  /opt/solana/bin/solana \
+  /opt/solana/bin/solana-validator \
+  /opt/solana/bin/solana-keygen \
+  /opt/solana/bin/solana-faucet \
+  /opt/solana/bin/solana-genesis \
+  /opt/solana/bin/libsolana_geyser_plugin_postgres.so \
+  /opt/solana/run.sh \
+  /opt/solana/fetch-spl.sh \
+  /opt/solana/bin/
+
+COPY --from=solana /opt/accountsdb-plugin-config.json /opt/
 
 COPY evm_loader/solana-run-neon.sh \
      /opt/solana/bin/
 
 COPY --from=evm-loader-builder /opt/evm_loader/target/deploy/evm_loader*.so /opt/
 COPY --from=evm-loader-builder /opt/evm_loader/target/release/neon-cli /opt/
-COPY --from=solana /usr/bin/spl-token /opt/spl-token
+COPY --from=spl-token-builder /opt/spl-token /opt/
 COPY --from=contracts /opt/ /opt/solidity/
 COPY --from=contracts /usr/bin/solc /usr/bin/solc
 COPY evm_loader/*.py \

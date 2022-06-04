@@ -33,9 +33,10 @@ NEON_BPF_ARGS=(
 
 NEON_VALIDATOR_ARGS=(
     --gossip-host $(hostname -i)
+    --geyser-plugin-config /opt/accountsdb-plugin-config.json
 )
 
 export SOLANA_RUN_SH_GENESIS_ARGS="${NEON_BPF_ARGS[@]}"
 export SOLANA_RUN_SH_VALIDATOR_ARGS="${NEON_VALIDATOR_ARGS[@]}"
 
-./solana-run.sh
+/opt/solana/bin/run.sh
